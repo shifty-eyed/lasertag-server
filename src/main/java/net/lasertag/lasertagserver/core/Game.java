@@ -3,7 +3,11 @@ package net.lasertag.lasertagserver.core;
 import lombok.Getter;
 import net.lasertag.lasertagserver.model.MessageToPhone;
 import net.lasertag.lasertagserver.model.Player;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 @Component
 @Getter
@@ -15,12 +19,13 @@ public class Game {
 	private final PhoneCommunication phoneComm;
 	private final GunCommunication gunComm;
 	private final VestCommunication vestComm;
+	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-	private boolean gameStarted = false;
+	private boolean gameRunning = false;
 	private int fragLimit = 10;
 	private int timeLimitMinutes = 10;
 	private int timeLeftSeconds = 0;
-
+	private int respawnTimeSeconds = 15;
 
 	public Game(PlayerRegistry playerRegistry, PhoneCommunication phoneComm, GunCommunication gunComm, VestCommunication vestComm) {
 		this.playerRegistry = playerRegistry;
@@ -29,8 +34,12 @@ public class Game {
 		this.vestComm = vestComm;
 	}
 
+	private boolean canPlay(Player player) {
+		return gameRunning && player.getHealth() > 0;
+	}
+
 	public void eventGunShot(Player player) {
-		if (player.getBulletsLeft() > 0) {
+		if (canPlay(player) && player.getBulletsLeft() > 0) {
 			player.setBulletsLeft(player.getBulletsLeft() - 1);
 			phoneComm.sendEventToPhone(MessageToPhone.GUN_SHOT, player, 0);
 		} else {
@@ -44,6 +53,9 @@ public class Game {
 	}
 
 	public void eventVestGotHit(Player player, Player hitByPlayer) {
+		if (!canPlay(player) || !canPlay(hitByPlayer)) {
+			return;
+		}
 		player.setHealth(player.getHealth() - SHOT_DAMAGE);
 		if (player.getHealth() >= 0) {
 			phoneComm.sendEventToPhone(MessageToPhone.GOT_HIT, player, hitByPlayer.getId());
@@ -54,13 +66,44 @@ public class Game {
 			phoneComm.sendEventToPhone(MessageToPhone.YOU_SCORED, hitByPlayer, player.getId());
 			if (hitByPlayer.getScore() >= fragLimit) {
 				endGame(hitByPlayer);
+			} else {
+				scheduler.schedule(() -> respawnPlayer(player), respawnTimeSeconds, java.util.concurrent.TimeUnit.SECONDS);
 			}
 		}
 	}
 
 	public void endGame(Player winner) {
-		phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, winner, 0);
-		gameStarted = false;
+		for (Player player : playerRegistry.getOnlinePlayers()) {
+			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner.getId());
+			phoneComm.sendStatsToPhone(player);
+		}
+		gameRunning = false;
+	}
+
+	private void respawnPlayer(Player player) {
+		player.setHealth(player.getMaxHealth());
+		player.setBulletsLeft(player.getMagazineSize());
+		phoneComm.sendEventToPhone(MessageToPhone.RESPAWN, player, 0);
+	}
+
+	public void startGame() {
+		for (Player player : playerRegistry.getOnlinePlayers()) {
+			player.setScore(0);
+			respawnPlayer(player);
+			phoneComm.sendEventToPhone(MessageToPhone.GAME_START, player, 0);
+		}
+		timeLeftSeconds = timeLimitMinutes * 60;
+		gameRunning = true;
+	}
+
+	@Scheduled(fixedRate = 1000)
+	public void updateGameTime() {
+		if (gameRunning) {
+			timeLeftSeconds--;
+			if (timeLeftSeconds <= 0) {
+				endGame(playerRegistry.getPlayersSortedByScore().get(0));
+			}
+		}
 	}
 
 
