@@ -1,11 +1,11 @@
 	package net.lasertag.lasertagserver.core;
 
 import jakarta.annotation.PostConstruct;
+import lombok.Setter;
 import net.lasertag.lasertagserver.model.MessageFromDevice;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
 
-import javax.swing.*;
 import java.net.InetAddress;
 import java.util.concurrent.Executor;
 
@@ -13,14 +13,14 @@ import java.util.concurrent.Executor;
 public class VestCommunication extends AbstractUdpServer {
 
 	private final Executor daemonExecutor;
-	private final Game game;
+
+	@Setter
+	private GameEventsListener gameEventsListener;
 
 	public VestCommunication(PlayerRegistry playerRegistry,
-							 Executor daemonExecutor,
-							 Game game) {
+							 Executor daemonExecutor) {
 		super(9877, playerRegistry);
 		this.daemonExecutor = daemonExecutor;
-		this.game = game;
 	}
 
 	@PostConstruct
@@ -44,7 +44,7 @@ public class VestCommunication extends AbstractUdpServer {
 		var player = playerRegistry.getPlayerById(message.getPlayerId());
 		var hitByPlayer = playerRegistry.getPlayerById(message.getHitByPlayerId());
 		switch (message.getType()) {
-			case MessageFromDevice.TYPE_VEST_HIT -> game.eventVestGotHit(player, hitByPlayer);
+			case MessageFromDevice.TYPE_VEST_HIT -> gameEventsListener.eventVestGotHit(player, hitByPlayer);
 			default -> throw new IllegalArgumentException("Unknown message type from vest: " + message.getType());
 		}
 	}

@@ -35,7 +35,7 @@ public class PlayerRegistry {
 	}
 
 	public List<Player> getPlayersSortedByScore() {
-		return getOnlinePlayers().stream().sorted((p1, p2) -> p2.getScore() - p1.getScore()).toList();
+		return players.stream().sorted((p1, p2) -> p2.getScore() - p1.getScore()).toList();
 	}
 
 }

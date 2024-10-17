@@ -19,6 +19,11 @@ public abstract class AbstractUdpServer {
 	protected final PlayerRegistry playerRegistry;
 	private final List<Long> lastPingTime;
 
+	private long pingTimeout = 5000;
+	private long messageAckTimeout = 1000;
+	private long messageRetryAttempts = 3;
+
+
 	private volatile boolean running = true;
 	private final int port;
 
@@ -40,7 +45,7 @@ public abstract class AbstractUdpServer {
 
 	public void startUdpServer() {
 		try (DatagramSocket serverSocket = new DatagramSocket(port)) {
-			System.out.printf("UDP Server: %s started on port: %d thread: %s",
+			System.out.printf("UDP Server: %s started on port: %d thread: %s\n",
 				this.getClass().getSimpleName(), port, Thread.currentThread().getName());
 
 			serverSocket.setSoTimeout(500);
@@ -108,7 +113,7 @@ public abstract class AbstractUdpServer {
 		var currentTime = System.currentTimeMillis();
 		playerRegistry.getOnlinePlayers().forEach(player -> {
 			var lastPing = lastPingTime.get(player.getId());
-			if (currentTime - lastPing > 5000) {
+			if (currentTime - lastPing > pingTimeout) {
 				setDeviceIp(player, null);
 			}
 		});

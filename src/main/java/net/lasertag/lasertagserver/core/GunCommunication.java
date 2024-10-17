@@ -1,6 +1,7 @@
 package net.lasertag.lasertagserver.core;
 
 import jakarta.annotation.PostConstruct;
+import lombok.Setter;
 import net.lasertag.lasertagserver.model.MessageFromDevice;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
@@ -12,14 +13,14 @@ import java.util.concurrent.Executor;
 public class GunCommunication extends AbstractUdpServer {
 
 	private final Executor daemonExecutor;
-	private final Game game;
+
+	@Setter
+	private GameEventsListener gameEventsListener;
 
 	public GunCommunication(PlayerRegistry playerRegistry,
-							Executor daemonExecutor,
-							Game game) {
+							Executor daemonExecutor) {
 		super(9876, playerRegistry);
 		this.daemonExecutor = daemonExecutor;
-		this.game = game;
 	}
 
 	@PostConstruct
@@ -42,8 +43,8 @@ public class GunCommunication extends AbstractUdpServer {
 	protected void onMessageReceived(MessageFromDevice message) {
 		var player = playerRegistry.getPlayerById(message.getPlayerId());
 		switch (message.getType()) {
-			case MessageFromDevice.TYPE_GUN_SHOT -> game.eventGunShot(player);
-			case MessageFromDevice.TYPE_GUN_RELOAD -> game.eventGunReload(player);
+			case MessageFromDevice.TYPE_GUN_SHOT -> gameEventsListener.eventGunShot(player);
+			case MessageFromDevice.TYPE_GUN_RELOAD -> gameEventsListener.eventGunReload(player);
 		}
 	}
 

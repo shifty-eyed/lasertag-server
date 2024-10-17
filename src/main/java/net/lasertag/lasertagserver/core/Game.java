@@ -3,6 +3,8 @@ package net.lasertag.lasertagserver.core;
 import lombok.Getter;
 import net.lasertag.lasertagserver.model.MessageToPhone;
 import net.lasertag.lasertagserver.model.Player;
+import net.lasertag.lasertagserver.ui.AdminConsole;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -11,7 +13,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Component
 @Getter
-public class Game {
+public class Game implements GameEventsListener {
 
 	private final int SHOT_DAMAGE = 1;
 
@@ -19,6 +21,7 @@ public class Game {
 	private final PhoneCommunication phoneComm;
 	private final GunCommunication gunComm;
 	private final VestCommunication vestComm;
+	private final AdminConsole adminConsole;
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 	private boolean gameRunning = false;
@@ -27,17 +30,22 @@ public class Game {
 	private int timeLeftSeconds = 0;
 	private int respawnTimeSeconds = 15;
 
-	public Game(PlayerRegistry playerRegistry, PhoneCommunication phoneComm, GunCommunication gunComm, VestCommunication vestComm) {
+	public Game(PlayerRegistry playerRegistry, PhoneCommunication phoneComm, GunCommunication gunComm, VestCommunication vestComm, AdminConsole adminConsole) {
 		this.playerRegistry = playerRegistry;
 		this.phoneComm = phoneComm;
 		this.gunComm = gunComm;
 		this.vestComm = vestComm;
+		this.adminConsole = adminConsole;
+		gunComm.setGameEventsListener(this);
+		vestComm.setGameEventsListener(this);
+		adminConsole.setGameEventsListener(this);
 	}
 
 	private boolean canPlay(Player player) {
 		return gameRunning && player.getHealth() > 0;
 	}
 
+	@Override
 	public void eventGunShot(Player player) {
 		if (canPlay(player) && player.getBulletsLeft() > 0) {
 			player.setBulletsLeft(player.getBulletsLeft() - 1);
@@ -47,11 +55,13 @@ public class Game {
 		}
 	}
 
+	@Override
 	public void eventGunReload(Player player) {
 		player.setBulletsLeft(player.getMagazineSize());
 		phoneComm.sendEventToPhone(MessageToPhone.GUN_RELOAD, player, 0);
 	}
 
+	@Override
 	public void eventVestGotHit(Player player, Player hitByPlayer) {
 		if (!canPlay(player) || !canPlay(hitByPlayer)) {
 			return;
@@ -65,19 +75,30 @@ public class Game {
 			phoneComm.sendEventToPhone(MessageToPhone.YOU_KILLED, player, hitByPlayer.getId());
 			phoneComm.sendEventToPhone(MessageToPhone.YOU_SCORED, hitByPlayer, player.getId());
 			if (hitByPlayer.getScore() >= fragLimit) {
-				endGame(hitByPlayer);
+				endGame();
 			} else {
 				scheduler.schedule(() -> respawnPlayer(player), respawnTimeSeconds, java.util.concurrent.TimeUnit.SECONDS);
 			}
 		}
 	}
 
-	public void endGame(Player winner) {
+	@Override
+	public void eventConsoleStartGame() {
+		startGame();
+	}
+
+	@Override
+	public void eventConsoleEndGame() {
+		endGame();
+	}
+
+	public void endGame() {
+		Player winner = playerRegistry.getPlayersSortedByScore().get(0);
 		for (Player player : playerRegistry.getOnlinePlayers()) {
-			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner.getId());
+			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner == null ? 0 : winner.getId());
 			phoneComm.sendStatsToPhone(player);
 		}
-		gameRunning = false;
+		setGameRunning(false);
 	}
 
 	private void respawnPlayer(Player player) {
@@ -93,7 +114,7 @@ public class Game {
 			phoneComm.sendEventToPhone(MessageToPhone.GAME_START, player, 0);
 		}
 		timeLeftSeconds = timeLimitMinutes * 60;
-		gameRunning = true;
+		setGameRunning(true);
 	}
 
 	@Scheduled(fixedRate = 1000)
@@ -101,10 +122,17 @@ public class Game {
 		if (gameRunning) {
 			timeLeftSeconds--;
 			if (timeLeftSeconds <= 0) {
-				endGame(playerRegistry.getPlayersSortedByScore().get(0));
+				endGame();
 			}
+			adminConsole.getIndicatorGameTime().setText(String.format("%02d:%02d", timeLeftSeconds / 60, timeLeftSeconds % 60));
+		} else {
+			adminConsole.getIndicatorGameTime().setText("--:--");
 		}
 	}
 
+	private void setGameRunning(boolean gameRunning) {
+		this.gameRunning = gameRunning;
+		adminConsole.getIndicatorStatus().setText(gameRunning ? "Playing" : "Stopped");
+	}
 
 }
