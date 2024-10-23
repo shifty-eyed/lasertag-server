@@ -81,7 +81,7 @@ public class AdminConsole {
 	}
 
 	public void refreshTable() {
-		playerTableModel.fireTableDataChanged();
+		SwingUtilities.invokeLater(() -> playerTableModel.fireTableDataChanged());
 	}
 
 	private class PlayerTableModel extends AbstractTableModel {

@@ -34,6 +34,7 @@ public class Player {
 		this.name = name;
 		this.maxHealth = maxHealth;
 		this.health = maxHealth;
+		this.magazineSize = 10;
 		this.score = 0;
 	}
 

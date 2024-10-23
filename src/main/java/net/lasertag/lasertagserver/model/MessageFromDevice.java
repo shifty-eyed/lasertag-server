@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 @AllArgsConstructor
 @Getter
@@ -19,7 +20,10 @@ public class MessageFromDevice {
 	private byte playerId;
 	private byte hitByPlayerId;
 
-	public static MessageFromDevice fromBytes(byte[] bytes) {
+	public static MessageFromDevice fromBytes(byte[] bytes, int length) {
+		if (length != 3) {
+			throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
+		}
 		ByteBuffer data = ByteBuffer.wrap(bytes);
 		data.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 		var type = data.get();

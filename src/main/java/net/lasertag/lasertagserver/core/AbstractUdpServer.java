@@ -14,8 +14,6 @@ import java.util.List;
 
 public abstract class AbstractUdpServer {
 
-	private static final int CLIENT_PORT = 1234;
-
 	protected final PlayerRegistry playerRegistry;
 	private final List<Long> lastPingTime;
 
@@ -32,7 +30,7 @@ public abstract class AbstractUdpServer {
 		this.playerRegistry = playerRegistry;
 
 		this.lastPingTime = new ArrayList<>(playerRegistry.getPlayers().size());
-		for (int i = 0; i < playerRegistry.getPlayers().size(); i++) {
+		for (int i = 0; i < playerRegistry.getPlayers().size() + 1; i++) {
 			lastPingTime.add(0L);
 		}
 	}
@@ -50,7 +48,7 @@ public abstract class AbstractUdpServer {
 
 			serverSocket.setSoTimeout(500);
 
-			byte[] receiveBuffer = new byte[256];
+			byte[] receiveBuffer = new byte[64];
 
 			while (running) {
 				DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
@@ -72,9 +70,9 @@ public abstract class AbstractUdpServer {
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
 			byte[] sendData = new byte[] { 1 };
 			var ip = getDeviceIp(player);
-			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, getDeviceIp(player), CLIENT_PORT);
+			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ip, port);
 			clientSocket.send(sendPacket);
-			System.out.println("Command ACK to client: " + ip.getHostAddress());
+			//System.out.println("Command ACK to client: " + ip.getHostAddress());
 		} catch (Exception e) {
 			System.out.println("Error sending command to client: " + e.getMessage());
 		}
@@ -82,8 +80,11 @@ public abstract class AbstractUdpServer {
 
 	protected void sendBytesToClient(Player player, byte[] bytes) {
 		var ip = getDeviceIp(player);
+		if (ip == null) {
+			return;
+		}
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
-			DatagramPacket sendPacket = new DatagramPacket(bytes, bytes.length, ip, CLIENT_PORT);
+			DatagramPacket sendPacket = new DatagramPacket(bytes, bytes.length, ip, port);
 			clientSocket.send(sendPacket);
 			System.out.println("Command to client: " + ip.getHostAddress());
 		} catch (Exception e) {
@@ -98,12 +99,13 @@ public abstract class AbstractUdpServer {
 
 	private void processPacketFromClient(DatagramPacket packet) {
 		try {
-			MessageFromDevice message = MessageFromDevice.fromBytes(packet.getData());
+			MessageFromDevice message = MessageFromDevice.fromBytes(packet.getData(), packet.getLength());
 			setDeviceIp(playerRegistry.getPlayerById(message.getPlayerId()), packet.getAddress());
 			lastPingTime.set(message.getPlayerId(), System.currentTimeMillis());
 			onMessageReceived(message);
 			sendAckToClient(playerRegistry.getPlayerById(message.getPlayerId()));
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.out.println("Error parsing message: " + e.getMessage());
 		}
 	}

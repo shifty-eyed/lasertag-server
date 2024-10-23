@@ -4,7 +4,6 @@ import lombok.Getter;
 import net.lasertag.lasertagserver.model.MessageToPhone;
 import net.lasertag.lasertagserver.model.Player;
 import net.lasertag.lasertagserver.ui.AdminConsole;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -42,7 +41,7 @@ public class Game implements GameEventsListener {
 	}
 
 	private boolean canPlay(Player player) {
-		return gameRunning && player.getHealth() > 0;
+		return gameRunning && player.isAlive();
 	}
 
 	@Override
@@ -53,12 +52,14 @@ public class Game implements GameEventsListener {
 		} else {
 			phoneComm.sendEventToPhone(MessageToPhone.GUN_NO_BULLETS, player, 0);
 		}
+		adminConsole.refreshTable();
 	}
 
 	@Override
 	public void eventGunReload(Player player) {
 		player.setBulletsLeft(player.getMagazineSize());
 		phoneComm.sendEventToPhone(MessageToPhone.GUN_RELOAD, player, 0);
+		adminConsole.refreshTable();
 	}
 
 	@Override
@@ -80,6 +81,7 @@ public class Game implements GameEventsListener {
 				scheduler.schedule(() -> respawnPlayer(player), respawnTimeSeconds, java.util.concurrent.TimeUnit.SECONDS);
 			}
 		}
+		adminConsole.refreshTable();
 	}
 
 	@Override
@@ -102,19 +104,20 @@ public class Game implements GameEventsListener {
 	}
 
 	private void respawnPlayer(Player player) {
-		player.setHealth(player.getMaxHealth());
-		player.setBulletsLeft(player.getMagazineSize());
+		player.respawn();
+		adminConsole.refreshTable();
 		phoneComm.sendEventToPhone(MessageToPhone.RESPAWN, player, 0);
 	}
 
 	public void startGame() {
-		for (Player player : playerRegistry.getOnlinePlayers()) {
+		for (Player player : playerRegistry.getPlayers()) {
 			player.setScore(0);
 			respawnPlayer(player);
 			phoneComm.sendEventToPhone(MessageToPhone.GAME_START, player, 0);
 		}
 		timeLeftSeconds = timeLimitMinutes * 60;
 		setGameRunning(true);
+		adminConsole.refreshTable();
 	}
 
 	@Scheduled(fixedRate = 1000)

@@ -35,16 +35,27 @@ public class MessageToPhone {
 	}
 
 	public static byte[] playerStatsToBytes(List<Player> players) {
-		ByteBuffer data = ByteBuffer.allocate(1 + players.size() * 4);
+		var size = 1 + 1 + getPlayersSize(players);
+		ByteBuffer data = ByteBuffer.allocate(size);
 		data.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 		data.put(FULL_STATS);
+		data.put((byte)players.size());
 		for (Player player : players) {
 			data.put((byte)player.getId());
 			data.put((byte)player.getScore());
-			data.put(Arrays.copyOf(player.getName().getBytes(), 32));
+			data.put((byte)player.getName().length());
+			data.put(player.getName().getBytes());
 		}
 
 		return data.array();
+	}
+
+	private static int getPlayersSize(List<Player> players) {
+		int size = 0;
+		for (Player player : players) {
+			size += 3 + player.getName().length();
+		}
+		return size;
 	}
 
 }
