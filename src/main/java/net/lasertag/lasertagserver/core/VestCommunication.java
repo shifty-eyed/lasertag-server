@@ -19,7 +19,7 @@ public class VestCommunication extends AbstractUdpServer {
 
 	public VestCommunication(PlayerRegistry playerRegistry,
 							 Executor daemonExecutor) {
-		super(9877, playerRegistry);
+		super(9877, 9877, playerRegistry);
 		this.daemonExecutor = daemonExecutor;
 	}
 

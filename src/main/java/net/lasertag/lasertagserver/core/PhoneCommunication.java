@@ -15,7 +15,7 @@ public class PhoneCommunication extends AbstractUdpServer {
 	private final Executor daemonExecutor;
 
 	public PhoneCommunication(PlayerRegistry playerRegistry, Executor daemonExecutor) {
-		super(9878, playerRegistry);
+		super(9878, 1234, playerRegistry);
 		this.daemonExecutor = daemonExecutor;
 	}
 

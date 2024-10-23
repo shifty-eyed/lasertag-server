@@ -37,6 +37,7 @@ public class Game implements GameEventsListener {
 		this.adminConsole = adminConsole;
 		gunComm.setGameEventsListener(this);
 		vestComm.setGameEventsListener(this);
+		phoneComm.setGameEventsListener(this);
 		adminConsole.setGameEventsListener(this);
 	}
 
@@ -92,6 +93,11 @@ public class Game implements GameEventsListener {
 	@Override
 	public void eventConsoleEndGame() {
 		endGame();
+	}
+
+	@Override
+	public void refreshConsoleTable() {
+		adminConsole.refreshTable();
 	}
 
 	public void endGame() {

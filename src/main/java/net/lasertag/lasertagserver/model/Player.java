@@ -42,6 +42,10 @@ public class Player {
 		return gunIp != null && vestIp != null && phoneIp != null;
 	}
 
+	public String devicesOnline() {
+		return (gunIp != null ? "G" : "") + (vestIp != null ? "V" : "") + (phoneIp != null ? "P" : "");
+	}
+
 	public boolean isAlive() {
 		return health > 0;
 	}

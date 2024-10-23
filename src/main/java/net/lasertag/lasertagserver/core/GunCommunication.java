@@ -1,7 +1,6 @@
 package net.lasertag.lasertagserver.core;
 
 import jakarta.annotation.PostConstruct;
-import lombok.Setter;
 import net.lasertag.lasertagserver.model.MessageFromDevice;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
@@ -14,12 +13,9 @@ public class GunCommunication extends AbstractUdpServer {
 
 	private final Executor daemonExecutor;
 
-	@Setter
-	private GameEventsListener gameEventsListener;
-
 	public GunCommunication(PlayerRegistry playerRegistry,
 							Executor daemonExecutor) {
-		super(9876, playerRegistry);
+		super(9876, 9876, playerRegistry);
 		this.daemonExecutor = daemonExecutor;
 	}
 

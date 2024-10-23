@@ -113,7 +113,7 @@ public class AdminConsole {
 				case 4 -> player.getMaxHealth();
 				case 5 -> player.getBulletsLeft();
 				case 6 -> player.getMagazineSize();
-				case 7 -> player.isOnline();
+				case 7 -> player.devicesOnline();
 				default -> null;
 			};
 		}
@@ -135,9 +135,7 @@ public class AdminConsole {
 
 		@Override
 		public Class<?> getColumnClass(int columnIndex) {
-			if (columnIndex == 7) {
-				return Boolean.class;
-			} else if (columnIndex == 0 || columnIndex == 2 || columnIndex == 3 || columnIndex == 4 || columnIndex == 5 || columnIndex == 6) {
+			if (columnIndex == 0 || columnIndex == 2 || columnIndex == 3 || columnIndex == 4 || columnIndex == 5 || columnIndex == 6) {
 				return Integer.class;
 			} else {
 				return String.class;

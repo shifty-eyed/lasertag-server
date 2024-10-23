@@ -13,4 +13,6 @@ public interface GameEventsListener {
 
 	void eventConsoleEndGame();
 
+	void refreshConsoleTable();
+
 }
