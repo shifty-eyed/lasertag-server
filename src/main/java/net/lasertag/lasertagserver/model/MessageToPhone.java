@@ -42,18 +42,18 @@ public class MessageToPhone {
 		data.put((byte)players.size());
 		for (Player player : players) {
 			data.put((byte)player.getId());
+			data.put((byte)player.getHealth());
 			data.put((byte)player.getScore());
 			data.put((byte)player.getName().length());
 			data.put(player.getName().getBytes());
 		}
-
 		return data.array();
 	}
 
 	private static int getPlayersSize(List<Player> players) {
 		int size = 0;
 		for (Player player : players) {
-			size += 3 + player.getName().length();
+			size += 4 + player.getName().length(); //id+health+score+namelen+name
 		}
 		return size;
 	}

@@ -52,7 +52,6 @@ public class Player {
 
 	public void respawn() {
 		health = maxHealth;
-		score = 0;
 		bulletsLeft = magazineSize;
 	}
 

@@ -80,6 +80,7 @@ public class Game implements GameEventsListener {
 				endGame();
 			} else {
 				scheduler.schedule(() -> respawnPlayer(player), respawnTimeSeconds, java.util.concurrent.TimeUnit.SECONDS);
+				phoneComm.sendStatsToAll();
 			}
 		}
 		adminConsole.refreshTable();
@@ -101,12 +102,12 @@ public class Game implements GameEventsListener {
 	}
 
 	public void endGame() {
-		Player winner = playerRegistry.getPlayersSortedByScore().get(0);
-		for (Player player : playerRegistry.getOnlinePlayers()) {
-			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner == null ? 0 : winner.getId());
-			phoneComm.sendStatsToPhone(player);
-		}
 		setGameRunning(false);
+		Player winner = playerRegistry.getLeadPlayer();
+		for (Player player : playerRegistry.getPlayers()) {
+			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner == null ? 0 : winner.getId());
+		}
+		phoneComm.sendStatsToAll();
 	}
 
 	private void respawnPlayer(Player player) {
@@ -118,11 +119,12 @@ public class Game implements GameEventsListener {
 	public void startGame() {
 		for (Player player : playerRegistry.getPlayers()) {
 			player.setScore(0);
-			respawnPlayer(player);
+			player.respawn();
 			phoneComm.sendEventToPhone(MessageToPhone.GAME_START, player, 0);
 		}
 		timeLeftSeconds = timeLimitMinutes * 60;
 		setGameRunning(true);
+		phoneComm.sendStatsToAll();
 		adminConsole.refreshTable();
 	}
 
