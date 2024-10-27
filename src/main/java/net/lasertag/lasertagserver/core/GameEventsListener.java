@@ -9,10 +9,11 @@ public interface GameEventsListener {
 
 	void eventVestGotHit(Player player, Player hitByPlayer);
 
-	void eventConsoleStartGame();
+	void eventConsoleScheduleStartGame();
 
 	void eventConsoleEndGame();
 
 	void refreshConsoleTable();
 
+	void deviceConnected(Player player);
 }

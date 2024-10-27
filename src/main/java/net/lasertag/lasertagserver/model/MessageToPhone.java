@@ -23,6 +23,7 @@ public class MessageToPhone {
 	public static final byte YOU_SCORED = 10;
 	public static final byte FULL_STATS = 11;
 	public static final byte GUN_NO_BULLETS = 12;
+	public static final byte GAME_TIMER = 101;
 
 	private byte type;
 	private byte counterpartPlayerId;
@@ -30,15 +31,20 @@ public class MessageToPhone {
 	private byte score;
 	private byte bulletsLeft;
 
+	public static byte[] gameTimeToBytes(int minutes, int seconds) {
+		return new byte[]{GAME_TIMER, (byte)minutes, (byte)seconds};
+	}
+
 	public static byte[] eventToBytes(byte type, Player player, int counterpartPlayerId) {
 		return new byte[]{type, (byte)counterpartPlayerId, (byte)player.getHealth(), (byte)player.getScore(), (byte)player.getBulletsLeft()};
 	}
 
-	public static byte[] playerStatsToBytes(List<Player> players) {
-		var size = 1 + 1 + getPlayersSize(players);
+	public static byte[] playerStatsToBytes(List<Player> players, boolean gameRunning) {
+		var size = 1 + 1 + 1 + getPlayersSize(players);
 		ByteBuffer data = ByteBuffer.allocate(size);
 		data.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 		data.put(FULL_STATS);
+		data.put((byte)(gameRunning ? 1 : 0));
 		data.put((byte)players.size());
 		for (Player player : players) {
 			data.put((byte)player.getId());

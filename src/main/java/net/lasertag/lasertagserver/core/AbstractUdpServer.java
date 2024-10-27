@@ -19,13 +19,10 @@ public abstract class AbstractUdpServer {
 	@Setter
 	protected GameEventsListener gameEventsListener;
 
-
 	protected final PlayerRegistry playerRegistry;
 	private final List<Long> lastPingTime;
 
 	private long pingTimeout = 5000;
-	private long messageAckTimeout = 1000;
-	private long messageRetryAttempts = 3;
 
 	private volatile boolean running = true;
 	private final int port;
@@ -50,18 +47,11 @@ public abstract class AbstractUdpServer {
 		try (DatagramSocket serverSocket = new DatagramSocket(port)) {
 			System.out.printf("UDP Server: %s started on port: %d thread: %s\n",
 				this.getClass().getSimpleName(), port, Thread.currentThread().getName());
-
-			serverSocket.setSoTimeout(500);
 			byte[] receiveBuffer = new byte[64];
 			while (running) {
 				DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
-				try {
-					serverSocket.receive(receivePacket);
-				} catch (SocketTimeoutException e) {
-					continue;
-				}
+				serverSocket.receive(receivePacket);
 				processPacketFromClient(receivePacket);
-				Thread.yield();
 			}
 			System.out.println("UDP Server stopped");
 		} catch (Exception e) {
@@ -103,7 +93,12 @@ public abstract class AbstractUdpServer {
 	private void processPacketFromClient(DatagramPacket packet) {
 		try {
 			MessageFromDevice message = MessageFromDevice.fromBytes(packet.getData(), packet.getLength());
-			setDeviceIp(playerRegistry.getPlayerById(message.getPlayerId()), packet.getAddress());
+			var player = playerRegistry.getPlayerById(message.getPlayerId());
+			if (getDeviceIp(player) == null) {
+				setDeviceIp(player, packet.getAddress());
+				System.out.printf("%s connected to player %d\n", this.getClass().getSimpleName(), player.getId());
+				gameEventsListener.deviceConnected(player);
+			}
 			lastPingTime.set(message.getPlayerId(), System.currentTimeMillis());
 			gameEventsListener.refreshConsoleTable();
 			onMessageReceived(message);
@@ -114,14 +109,19 @@ public abstract class AbstractUdpServer {
 		}
 	}
 
-	@Scheduled(fixedRate = 1000)
+	@Scheduled(fixedDelay = 1000)
 	protected void sendHeartBeat() {
 		var currentTime = System.currentTimeMillis();
-		playerRegistry.getOnlinePlayers().forEach(player -> {
+		playerRegistry.getPlayers().forEach(player -> {
 			var lastPing = lastPingTime.get(player.getId());
 			if (currentTime - lastPing > pingTimeout) {
-				setDeviceIp(player, null);
-				gameEventsListener.refreshConsoleTable();
+				if (getDeviceIp(player) != null) {
+					System.out.printf("%s lost connection to player %d\n", this.getClass().getSimpleName(), player.getId());
+					setDeviceIp(player, null);
+					if (gameEventsListener != null) {
+						gameEventsListener.refreshConsoleTable();
+					}
+				}
 			}
 		});
 	}

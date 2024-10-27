@@ -3,6 +3,7 @@ package net.lasertag.lasertagserver.ui;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.util.Set;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -54,7 +55,7 @@ public class AdminConsole {
 		indicatorStatus = addIndicator("Status:", 10, bottomPanel);
 		indicatorGameTime = addIndicator("Game Time:", 5, bottomPanel);
 
-		bottomPanel.add(makeButton("Start Game", () -> gameEventsListener.eventConsoleStartGame()));
+		bottomPanel.add(makeButton("Start Game", () -> gameEventsListener.eventConsoleScheduleStartGame()));
 		bottomPanel.add(makeButton("End Game", () -> gameEventsListener.eventConsoleEndGame()));
 
 		frame.add(bottomPanel, BorderLayout.SOUTH);
@@ -85,8 +86,8 @@ public class AdminConsole {
 	}
 
 	private class PlayerTableModel extends AbstractTableModel {
-		private final String[] columnNames = {"ID", "Name", "Score", "Health", "Max Health", "Bullets Left", "Magazine", "Online"};
-
+		private final String[] columnNames = {"ID", "Name", "Score", "Health", "MaxHealth", "BulletsLeft", "Magazine", "RespawnTime", "Online"};
+		private final Set<Integer> editableColumns = Set.of(1, 4, 6, 7);
 		@Override
 		public int getRowCount() {
 			return playerRegistry.getPlayers().size();
@@ -113,7 +114,8 @@ public class AdminConsole {
 				case 4 -> player.getMaxHealth();
 				case 5 -> player.getBulletsLeft();
 				case 6 -> player.getMagazineSize();
-				case 7 -> player.devicesOnline();
+				case 7 -> player.getRespawnTimeSeconds();
+				case 8 -> player.devicesOnline();
 				default -> null;
 			};
 		}
@@ -124,21 +126,23 @@ public class AdminConsole {
 			switch (columnIndex) {
 				case 1 -> player.setName((String) aValue);
 				case 4 -> player.setMaxHealth((Integer) aValue);
+				case 6 -> player.setMagazineSize((Integer) aValue);
+				case 7 -> player.setRespawnTimeSeconds((Integer) aValue);
 			};
 			fireTableCellUpdated(rowIndex, columnIndex);
 		}
 
 		@Override
 		public boolean isCellEditable(int rowIndex, int columnIndex) {
-			return columnIndex == 1 || columnIndex == 4;
+			return editableColumns.contains(columnIndex);
 		}
 
 		@Override
 		public Class<?> getColumnClass(int columnIndex) {
-			if (columnIndex == 0 || columnIndex == 2 || columnIndex == 3 || columnIndex == 4 || columnIndex == 5 || columnIndex == 6) {
-				return Integer.class;
-			} else {
+			if (columnIndex == 1) {
 				return String.class;
+			} else {
+				return Integer.class;
 			}
 		}
 

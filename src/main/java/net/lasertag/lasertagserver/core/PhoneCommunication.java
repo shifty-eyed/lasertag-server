@@ -6,6 +6,8 @@ import net.lasertag.lasertagserver.model.MessageToPhone;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.concurrent.Executor;
 
@@ -15,7 +17,7 @@ public class PhoneCommunication extends AbstractUdpServer {
 	private final Executor daemonExecutor;
 
 	public PhoneCommunication(PlayerRegistry playerRegistry, Executor daemonExecutor) {
-		super(9878, 1234, playerRegistry);
+		super(9878, 9878, playerRegistry);
 		this.daemonExecutor = daemonExecutor;
 	}
 
@@ -36,18 +38,26 @@ public class PhoneCommunication extends AbstractUdpServer {
 	}
 
 	@Override
-	protected void onMessageReceived(MessageFromDevice message) {
-		//nothing to do as ping already handled in AbstractUdpServer
-	}
+	protected void onMessageReceived(MessageFromDevice message) {}
 
 	public void sendEventToPhone(byte type, Player player, int counterpartPlayerId) {
 		var bytes = MessageToPhone.eventToBytes(type, player, counterpartPlayerId);
 		sendBytesToClient(player, bytes);
 	}
 
-	public void sendStatsToAll() {
-		var bytes = MessageToPhone.playerStatsToBytes(playerRegistry.getPlayersSortedByScore());
+	public void sendStatsToAll(boolean isGameRunning) {
+		var bytes = MessageToPhone.playerStatsToBytes(playerRegistry.getPlayersSortedByScore(), isGameRunning);
 		playerRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
+	}
+
+	public void sendGameTimeToAll(int munites, int seconds) {
+		var bytes = MessageToPhone.gameTimeToBytes(munites, seconds);
+		playerRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
+	}
+
+	public void sendGameTimeToPlayer(Player player, int munites, int seconds) {
+		var bytes = MessageToPhone.gameTimeToBytes(munites, seconds);
+		sendBytesToClient(player, bytes);
 	}
 
 }

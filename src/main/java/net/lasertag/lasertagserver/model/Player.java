@@ -23,6 +23,8 @@ public class Player {
 	@Setter
 	private int magazineSize;
 	@Setter
+	private int respawnTimeSeconds;
+	@Setter
 	private InetAddress gunIp;
 	@Setter
 	private InetAddress vestIp;
@@ -36,6 +38,7 @@ public class Player {
 		this.health = maxHealth;
 		this.magazineSize = 10;
 		this.score = 0;
+		this.respawnTimeSeconds = 10;
 	}
 
 	public boolean isOnline() {
@@ -50,7 +53,7 @@ public class Player {
 		return health > 0;
 	}
 
-	public void respawn() {
+	public void reset() {
 		health = maxHealth;
 		bulletsLeft = magazineSize;
 	}
