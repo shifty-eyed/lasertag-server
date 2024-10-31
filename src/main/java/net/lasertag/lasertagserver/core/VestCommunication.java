@@ -14,9 +14,6 @@ public class VestCommunication extends AbstractUdpServer {
 
 	private final Executor daemonExecutor;
 
-	@Setter
-	private GameEventsListener gameEventsListener;
-
 	public VestCommunication(PlayerRegistry playerRegistry,
 							 Executor daemonExecutor) {
 		super(9877, 9877, playerRegistry);
@@ -45,7 +42,6 @@ public class VestCommunication extends AbstractUdpServer {
 		var hitByPlayer = playerRegistry.getPlayerById(message.getHitByPlayerId());
 		switch (message.getType()) {
 			case MessageFromDevice.TYPE_VEST_HIT -> gameEventsListener.eventVestGotHit(player, hitByPlayer);
-			default -> throw new IllegalArgumentException("Unknown message type from vest: " + message.getType());
 		}
 	}
 

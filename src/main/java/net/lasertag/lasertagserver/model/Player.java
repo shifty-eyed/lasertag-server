@@ -5,6 +5,8 @@ import lombok.Setter;
 
 import java.net.InetAddress;
 
+import static net.lasertag.lasertagserver.core.Game.GUN_FIRE_INTERVAL_MILLIS;
+
 @Getter
 public class Player {
 
@@ -18,7 +20,7 @@ public class Player {
 	private int health;
 	@Setter
 	private int maxHealth;
-	@Setter
+
 	private int bulletsLeft;
 	@Setter
 	private int magazineSize;
@@ -31,6 +33,8 @@ public class Player {
 	@Setter
 	private InetAddress phoneIp;
 
+	private long lastShotTime = 0;
+
 	public Player(int id, String name, int maxHealth) {
 		this.id = id;
 		this.name = name;
@@ -39,6 +43,22 @@ public class Player {
 		this.magazineSize = 10;
 		this.score = 0;
 		this.respawnTimeSeconds = 10;
+	}
+
+	public void shoot() {
+		if (bulletsLeft > 0) {
+			bulletsLeft--;
+			lastShotTime = System.currentTimeMillis();
+		}
+	}
+
+	public void reload() {
+		bulletsLeft = magazineSize;
+	}
+
+	public boolean canHit() {
+		return bulletsLeft > 0
+			|| (System.currentTimeMillis() - lastShotTime) > GUN_FIRE_INTERVAL_MILLIS;
 	}
 
 	public boolean isOnline() {
@@ -55,7 +75,7 @@ public class Player {
 
 	public void reset() {
 		health = maxHealth;
-		bulletsLeft = magazineSize;
+		reload();
 	}
 
 }

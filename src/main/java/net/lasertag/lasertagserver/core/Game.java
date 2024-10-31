@@ -16,11 +16,12 @@ import java.util.concurrent.ScheduledExecutorService;
 @Getter
 public class Game implements GameEventsListener {
 
-	private final int SHOT_DAMAGE = 1;
+	private final int SHOT_DAMAGE = 10;
 
 	public static final int STATE_IDLE = 1;
 	public static final int STATE_START_PENDING = 2;
 	public static final int STATE_PLAYING = 3;
+	public static final int GUN_FIRE_INTERVAL_MILLIS = 300;
 
 	private final PlayerRegistry playerRegistry;
 	private final PhoneCommunication phoneComm;
@@ -60,7 +61,7 @@ public class Game implements GameEventsListener {
 	@Override
 	public void eventGunShot(Player player) {
 		if (canPlay(player) && player.getBulletsLeft() > 0) {
-			player.setBulletsLeft(player.getBulletsLeft() - 1);
+			player.shoot();
 			phoneComm.sendEventToPhone(MessageToPhone.GUN_SHOT, player, 0);
 		} else {
 			phoneComm.sendEventToPhone(MessageToPhone.GUN_NO_BULLETS, player, 0);
@@ -70,18 +71,18 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void eventGunReload(Player player) {
-		player.setBulletsLeft(player.getMagazineSize());
+		player.reload();
 		phoneComm.sendEventToPhone(MessageToPhone.GUN_RELOAD, player, 0);
 		adminConsole.refreshTable();
 	}
 
 	@Override
 	public void eventVestGotHit(Player player, Player hitByPlayer) {
-		if (!canPlay(player) || !canPlay(hitByPlayer)) {
+		if (!canPlay(player) || !canPlay(hitByPlayer) || !hitByPlayer.canHit()) {
 			return;
 		}
 		player.setHealth(player.getHealth() - SHOT_DAMAGE);
-		if (player.getHealth() >= 0) {
+		if (player.getHealth() > 0) {
 			phoneComm.sendEventToPhone(MessageToPhone.GOT_HIT, player, hitByPlayer.getId());
 			phoneComm.sendEventToPhone(MessageToPhone.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
 		} else { // killed
@@ -144,7 +145,7 @@ public class Game implements GameEventsListener {
 		phoneComm.sendEventToPhone(MessageToPhone.RESPAWN, player, 0);
 	}
 
-	@Scheduled(fixedDelay = 1000)
+	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
 	public void updateGameTime() {
 		timeLeftSeconds--;
 		if (gameState == STATE_PLAYING) {

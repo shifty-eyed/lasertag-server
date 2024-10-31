@@ -41,6 +41,10 @@ public class GunCommunication extends AbstractUdpServer {
 		switch (message.getType()) {
 			case MessageFromDevice.TYPE_GUN_SHOT -> gameEventsListener.eventGunShot(player);
 			case MessageFromDevice.TYPE_GUN_RELOAD -> gameEventsListener.eventGunReload(player);
+			case MessageFromDevice.TYPE_VEST_HIT -> {
+				var hitByPlayer = playerRegistry.getPlayerById(message.getHitByPlayerId());
+				gameEventsListener.eventVestGotHit(player, hitByPlayer);
+			}
 		}
 	}
 
