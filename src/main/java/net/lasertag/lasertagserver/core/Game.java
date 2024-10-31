@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -28,7 +29,8 @@ public class Game implements GameEventsListener {
 	private final GunCommunication gunComm;
 	private final VestCommunication vestComm;
 	private final AdminConsole adminConsole;
-	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+	private final ScheduledExecutorService scheduler =
+		Executors.newScheduledThreadPool(4, new DaemonThreadFactory("DaemonScheduler"));
 
 	private volatile int gameState = STATE_IDLE;
 
@@ -94,9 +96,9 @@ public class Game implements GameEventsListener {
 			} else {
 				playerRespawnCounter.put(player.getId(), player.getRespawnTimeSeconds());
 				scheduler.schedule(() -> respawnPlayer(player), player.getRespawnTimeSeconds(), java.util.concurrent.TimeUnit.SECONDS);
-				phoneComm.sendStatsToAll(gameState == STATE_PLAYING);
 			}
 		}
+		phoneComm.sendStatsToAll(gameState == STATE_PLAYING);
 		adminConsole.refreshTable();
 	}
 

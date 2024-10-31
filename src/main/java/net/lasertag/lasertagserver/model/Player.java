@@ -58,7 +58,7 @@ public class Player {
 
 	public boolean canHit() {
 		return bulletsLeft > 0
-			|| (System.currentTimeMillis() - lastShotTime) > GUN_FIRE_INTERVAL_MILLIS;
+			|| (System.currentTimeMillis() - lastShotTime) < GUN_FIRE_INTERVAL_MILLIS;
 	}
 
 	public boolean isOnline() {
