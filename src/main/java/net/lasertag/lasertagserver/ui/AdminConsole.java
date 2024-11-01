@@ -3,6 +3,8 @@ package net.lasertag.lasertagserver.ui;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Set;
 
 import lombok.Getter;
@@ -19,6 +21,8 @@ public class AdminConsole {
 	private JTextField indicatorGameTime;
 	@Getter
 	private JTextField indicatorStatus;
+	@Getter
+	private JTextField indicatorFragLimit;
 
 	private final PlayerRegistry playerRegistry;
 	@Setter
@@ -32,7 +36,7 @@ public class AdminConsole {
 	}
 
 	private void initUI() {
-		JFrame frame = new JFrame("Admin Console for Laser Tag Game Server");
+		JFrame frame = new JFrame("Admin Console for Laser Tag Game Server.");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(1600, 500);
 		frame.setLayout(new BorderLayout());
@@ -53,7 +57,13 @@ public class AdminConsole {
 		JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
 
 		indicatorStatus = addIndicator("Status:", 10, bottomPanel);
+		indicatorStatus.setEditable(false);
+
 		indicatorGameTime = addIndicator("Game Time:", 5, bottomPanel);
+		indicatorGameTime.setText("10");
+
+		indicatorFragLimit = addIndicator("Frag Limit:", 3, bottomPanel);
+		indicatorFragLimit.setText("10");
 
 		bottomPanel.add(makeButton("Start Game", () -> gameEventsListener.eventConsoleScheduleStartGame()));
 		bottomPanel.add(makeButton("End Game", () -> gameEventsListener.eventConsoleEndGame()));
@@ -74,7 +84,7 @@ public class AdminConsole {
 		JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		JLabel label = new JLabel(labelText);
 		JTextField textField = new JTextField(columns);
-		textField.setEditable(false);
+		textField.setHighlighter(null);
 		panel.add(label);
 		panel.add(textField);
 		container.add(panel);

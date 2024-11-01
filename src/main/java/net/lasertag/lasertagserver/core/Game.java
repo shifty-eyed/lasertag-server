@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -34,8 +33,8 @@ public class Game implements GameEventsListener {
 
 	private volatile int gameState = STATE_IDLE;
 
-	private int fragLimit = 10;
-	private int timeLimitMinutes = 10;
+	private int fragLimit;
+	private int timeLimitMinutes;
 	private int timeLeftSeconds = 0;
 	private int gameStartDelaySeconds = 5;
 	private final Map<Integer, Integer> playerRespawnCounter;
@@ -104,6 +103,8 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void eventConsoleScheduleStartGame() {
+		timeLimitMinutes = Integer.parseInt(adminConsole.getIndicatorGameTime().getText());
+		fragLimit = Integer.parseInt(adminConsole.getIndicatorFragLimit().getText());
 		for (Player player : playerRegistry.getPlayers()) {
 			player.setScore(0);
 			player.reset();
@@ -113,6 +114,8 @@ public class Game implements GameEventsListener {
 		setGameState(STATE_START_PENDING);
 		sendStatsToAllPhones();
 		adminConsole.refreshTable();
+		adminConsole.getIndicatorGameTime().setEditable(false);
+		adminConsole.getIndicatorFragLimit().setEditable(false);
 		scheduler.schedule(this::startGame, gameStartDelaySeconds, java.util.concurrent.TimeUnit.SECONDS);
 	}
 
@@ -129,6 +132,10 @@ public class Game implements GameEventsListener {
 	@Override
 	public void eventConsoleEndGame() {
 		setGameState(STATE_IDLE);
+		adminConsole.getIndicatorGameTime().setText(timeLimitMinutes+"");
+		adminConsole.getIndicatorGameTime().setEditable(true);
+		adminConsole.getIndicatorFragLimit().setText(fragLimit+"");
+		adminConsole.getIndicatorFragLimit().setEditable(true);
 		Player winner = playerRegistry.getLeadPlayer();
 		for (Player player : playerRegistry.getPlayers()) {
 			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner == null ? 0 : winner.getId());
@@ -168,8 +175,6 @@ public class Game implements GameEventsListener {
 		} else if (gameState == STATE_START_PENDING) {
 			adminConsole.getIndicatorGameTime().setText(timeLeftSeconds+"...");
 			phoneComm.sendGameTimeToAll(0, timeLeftSeconds);
-		} else {
-			adminConsole.getIndicatorGameTime().setText("--:--");
 		}
 	}
 
