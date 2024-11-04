@@ -3,8 +3,6 @@ package net.lasertag.lasertagserver.ui;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Set;
 
 import lombok.Getter;

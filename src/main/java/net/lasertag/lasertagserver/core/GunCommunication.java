@@ -15,7 +15,7 @@ public class GunCommunication extends AbstractUdpServer {
 
 	public GunCommunication(PlayerRegistry playerRegistry,
 							Executor daemonExecutor) {
-		super(9876, 9876, playerRegistry);
+		super(9876, 1234, playerRegistry);
 		this.daemonExecutor = daemonExecutor;
 	}
 

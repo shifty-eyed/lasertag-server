@@ -150,6 +150,7 @@ public class Game implements GameEventsListener {
 
 	private void respawnPlayer(Player player) {
 		player.reset();
+		sendStatsToAllPhones();
 		adminConsole.refreshTable();
 		phoneComm.sendEventToPhone(MessageToPhone.RESPAWN, player, 0);
 	}
