@@ -2,6 +2,7 @@ package net.lasertag.lasertagserver.core;
 
 import jakarta.annotation.PostConstruct;
 import net.lasertag.lasertagserver.model.MessageFromDevice;
+import net.lasertag.lasertagserver.model.MessageToPhone;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
 
@@ -47,6 +48,5 @@ public class GunCommunication extends AbstractUdpServer {
 			}
 		}
 	}
-
 
 }

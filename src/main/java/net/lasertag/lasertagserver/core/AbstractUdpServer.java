@@ -8,8 +8,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketTimeoutException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -70,6 +68,11 @@ public abstract class AbstractUdpServer {
 		}
 	}
 
+	public void sendPlayerStateToClient(Player player, boolean gameRunning) {
+		var bytes = MessageFromDevice.playerStateToBytes(player, gameRunning);
+		sendBytesToClient(player, bytes);
+	}
+
 	protected void sendBytesToClient(Player player, byte[] bytes) {
 		var ip = getDeviceIp(player);
 		if (ip == null) {
@@ -94,7 +97,7 @@ public abstract class AbstractUdpServer {
 		try {
 			MessageFromDevice message = MessageFromDevice.fromBytes(packet.getData(), packet.getLength());
 			var player = playerRegistry.getPlayerById(message.getPlayerId());
-			if (getDeviceIp(player) == null) {
+			if (getDeviceIp(player) == null || message.getHitByPlayerId() != 0) {//getHitByPlayerId cares the flag if device just stated
 				setDeviceIp(player, packet.getAddress());
 				System.out.printf("%s connected to player %d\n", this.getClass().getSimpleName(), player.getId());
 				gameEventsListener.deviceConnected(player);
@@ -104,7 +107,6 @@ public abstract class AbstractUdpServer {
 			onMessageReceived(message);
 			sendAckToClient(playerRegistry.getPlayerById(message.getPlayerId()));
 		} catch (Exception e) {
-			e.printStackTrace();
 			System.out.println("Error parsing message: " + e.getMessage());
 		}
 	}

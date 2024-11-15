@@ -14,11 +14,21 @@ public class MessageFromDevice {
 	public static final byte TYPE_GUN_SHOT = 2;
 	public static final byte TYPE_GUN_RELOAD = 3;
 	public static final byte TYPE_VEST_HIT = 4;
+	public static final byte TYPE_PLAYER_STATE = 5;
+
+	public static final byte PLATER_STATE_IDLE = 1;
+	public static final byte PLATER_STATE_PLAY = 2;
+	public static final byte PLATER_STATE_DEAD = 3;
 
 
 	private byte type;
 	private byte playerId;
 	private byte hitByPlayerId;
+
+	public static byte[] playerStateToBytes(Player player, boolean gameRunning) {
+		byte playerState = !player.isAlive() ? PLATER_STATE_DEAD : (gameRunning ? PLATER_STATE_PLAY : PLATER_STATE_IDLE);
+		return new byte[]{TYPE_PLAYER_STATE, (byte)player.getTeamId(), playerState, (byte)player.getBulletsLeft()};
+	}
 
 	public static MessageFromDevice fromBytes(byte[] bytes, int length) {
 		if (length != 3) {

@@ -40,8 +40,8 @@ public class PhoneCommunication extends AbstractUdpServer {
 	@Override
 	protected void onMessageReceived(MessageFromDevice message) {}
 
-	public void sendEventToPhone(byte type, Player player, int counterpartPlayerId) {
-		var bytes = MessageToPhone.eventToBytes(type, player, counterpartPlayerId);
+	public void sendEventToPhone(byte type, Player player, int extraValue) {
+		var bytes = MessageToPhone.eventToBytes(type, player, extraValue);
 		sendBytesToClient(player, bytes);
 	}
 

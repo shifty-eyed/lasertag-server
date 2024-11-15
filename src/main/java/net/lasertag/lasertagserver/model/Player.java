@@ -2,6 +2,7 @@ package net.lasertag.lasertagserver.model;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.lasertag.lasertagserver.core.Game;
 
 import java.net.InetAddress;
 
@@ -27,6 +28,13 @@ public class Player {
 	@Setter
 	private int respawnTimeSeconds;
 	@Setter
+	private int teamId;
+	@Setter
+	private int damage;
+
+	@Setter
+	private int respawnCounter;
+	@Setter
 	private InetAddress gunIp;
 	@Setter
 	private InetAddress vestIp;
@@ -42,7 +50,10 @@ public class Player {
 		this.health = maxHealth;
 		this.magazineSize = 10;
 		this.score = 0;
-		this.respawnTimeSeconds = 10;
+		this.respawnTimeSeconds = 20;
+		this.teamId = Game.TEAM_YELLOW;
+		this.damage = 10;
+		this.respawnCounter = 0;
 	}
 
 	public void shoot() {
@@ -62,7 +73,7 @@ public class Player {
 	}
 
 	public boolean isOnline() {
-		return gunIp != null && vestIp != null && phoneIp != null;
+		return gunIp != null || vestIp != null || phoneIp != null;
 	}
 
 	public String devicesOnline() {

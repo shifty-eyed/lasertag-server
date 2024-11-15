@@ -3,10 +3,12 @@ package net.lasertag.lasertagserver.ui;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.util.Arrays;
 import java.util.Set;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.lasertag.lasertagserver.core.Game;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.PlayerRegistry;
 import net.lasertag.lasertagserver.model.Player;
@@ -15,18 +17,26 @@ import org.springframework.stereotype.Component;
 @Component
 public class AdminConsole {
 
+	// TODO: Add team score indicator if team play is enabled
+
 	@Getter
 	private JTextField indicatorGameTime;
 	@Getter
 	private JTextField indicatorStatus;
 	@Getter
 	private JTextField indicatorFragLimit;
+	@Getter
+	private JCheckBox gameTypeTeam;
 
 	private final PlayerRegistry playerRegistry;
 	@Setter
 	private GameEventsListener gameEventsListener;
 
 	private PlayerTableModel playerTableModel;
+	private JPanel scoresContainer;
+
+	private static final Color[] TEAM_COLORS = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN};
+	private static final String[] TEAM_COLORS_NAMES = {"Red", "Blue", "Green", "Yellow", "Magenta", "Cyan"};
 
 	public AdminConsole(PlayerRegistry playerRegistry) {
 		this.playerRegistry = playerRegistry;
@@ -36,7 +46,7 @@ public class AdminConsole {
 	private void initUI() {
 		JFrame frame = new JFrame("Admin Console for Laser Tag Game Server.");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(1600, 500);
+		frame.setSize(2000, 700);
 		frame.setLayout(new BorderLayout());
 
 		// Table Model and JTable
@@ -47,25 +57,41 @@ public class AdminConsole {
 		playerTable.setRowMargin(20);
 		playerTable.setIntercellSpacing(new Dimension(15, 15));
 		playerTable.setRowSelectionAllowed(false);
+		JComboBox<String> teamColorComboBox = new JComboBox<>();
+		for (int i = 0; i < TEAM_COLORS_NAMES.length; i++) {
+			teamColorComboBox.addItem(TEAM_COLORS_NAMES[i]);
+		}
+		playerTable.getColumnModel().getColumn(9).setCellEditor(new DefaultCellEditor(teamColorComboBox));
+
 
 		JScrollPane tableScrollPane = new JScrollPane(playerTable);
 		frame.add(tableScrollPane, BorderLayout.CENTER);
 
-		// Bottom Panel with Buttons and Timer
-		JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
+		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
 
-		indicatorStatus = addIndicator("Status:", 10, bottomPanel);
+		// Bottom Panel with Buttons and Timer
+		JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+
+		indicatorStatus = addIndicator("Status:", 10, topPanel);
 		indicatorStatus.setEditable(false);
 
-		indicatorGameTime = addIndicator("Game Time:", 5, bottomPanel);
-		indicatorGameTime.setText("10");
+		indicatorGameTime = addIndicator("Game Time:", 5, topPanel);
+		indicatorGameTime.setText("15");
 
-		indicatorFragLimit = addIndicator("Frag Limit:", 3, bottomPanel);
+		indicatorFragLimit = addIndicator("Frag Limit:", 3, topPanel);
 		indicatorFragLimit.setText("10");
 
 		bottomPanel.add(makeButton("Start Game", () -> gameEventsListener.eventConsoleScheduleStartGame()));
 		bottomPanel.add(makeButton("End Game", () -> gameEventsListener.eventConsoleEndGame()));
 
+		gameTypeTeam = new JCheckBox("Team Play");
+		bottomPanel.add(gameTypeTeam);
+		gameTypeTeam.addActionListener(e -> refreshTeamScores());
+
+		scoresContainer = new JPanel();
+		bottomPanel.add(scoresContainer);
+
+		frame.add(topPanel, BorderLayout.NORTH);
 		frame.add(bottomPanel, BorderLayout.SOUTH);
 
 		frame.setVisible(true);
@@ -89,13 +115,38 @@ public class AdminConsole {
 		return textField;
 	}
 
+	private void refreshTeamScores() {
+		scoresContainer.removeAll();
+		if (!gameTypeTeam.isSelected()) {
+			return;
+		}
+		playerRegistry.getTeamScores().forEach((teamId, score) -> {
+			JLabel label = new JLabel(" "+score+" ");
+			label.setFont(new Font("Arial", Font.BOLD, 35));
+			//label.setOpaque(true);
+			if (teamId < Game.TEAM_RED || teamId > Game.TEAM_CYAN) {
+				return;
+			}
+			var color = TEAM_COLORS[(teamId - Game.TEAM_RED)];
+			label.setForeground(color);
+			scoresContainer.add(label);
+		});
+
+		scoresContainer.revalidate();
+		scoresContainer.repaint();
+
+	}
+
 	public void refreshTable() {
-		SwingUtilities.invokeLater(() -> playerTableModel.fireTableDataChanged());
+		SwingUtilities.invokeLater(() -> {
+			playerTableModel.fireTableDataChanged();
+			refreshTeamScores();
+		});
 	}
 
 	private class PlayerTableModel extends AbstractTableModel {
-		private final String[] columnNames = {"ID", "Name", "Score", "Health", "MaxHealth", "BulletsLeft", "Magazine", "RespawnTime", "Online"};
-		private final Set<Integer> editableColumns = Set.of(1, 4, 6, 7);
+		private final String[] columnNames = {"ID", "Name", "Score", "Health", "MaxHealth", "BulletsLeft", "Magazine", "RespawnTime", "Damage", "Team", "Online"};
+		private final Set<Integer> editableColumns = Set.of(1, 4, 6, 7, 8, 9);
 		@Override
 		public int getRowCount() {
 			return playerRegistry.getPlayers().size();
@@ -123,7 +174,9 @@ public class AdminConsole {
 				case 5 -> player.getBulletsLeft();
 				case 6 -> player.getMagazineSize();
 				case 7 -> player.getRespawnTimeSeconds();
-				case 8 -> player.devicesOnline();
+				case 8 -> player.getDamage();
+				case 9 -> TEAM_COLORS_NAMES[player.getTeamId() - Game.TEAM_RED];
+				case 10 -> player.devicesOnline();
 				default -> null;
 			};
 		}
@@ -136,8 +189,18 @@ public class AdminConsole {
 				case 4 -> player.setMaxHealth((Integer) aValue);
 				case 6 -> player.setMagazineSize((Integer) aValue);
 				case 7 -> player.setRespawnTimeSeconds((Integer) aValue);
+				case 8 -> player.setDamage((Integer) aValue);
+				case 9 -> {
+					for (int i = 0; i < TEAM_COLORS_NAMES.length; i++) {
+						if (TEAM_COLORS_NAMES[i].equals(aValue)) {
+							player.setTeamId(i + Game.TEAM_RED);
+						}
+					}
+				}
 			};
+			gameEventsListener.onPlayerDataUpdated(player);
 			fireTableCellUpdated(rowIndex, columnIndex);
+			SwingUtilities.invokeLater(AdminConsole.this::refreshTeamScores);
 		}
 
 		@Override
@@ -147,7 +210,7 @@ public class AdminConsole {
 
 		@Override
 		public Class<?> getColumnClass(int columnIndex) {
-			if (columnIndex == 1) {
+			if (columnIndex == 1 || columnIndex == 9) {
 				return String.class;
 			} else {
 				return Integer.class;

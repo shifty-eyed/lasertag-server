@@ -7,21 +7,25 @@ import net.lasertag.lasertagserver.ui.AdminConsole;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Component
 @Getter
 public class Game implements GameEventsListener {
-
-	private final int SHOT_DAMAGE = 10;
-
 	public static final int STATE_IDLE = 1;
 	public static final int STATE_START_PENDING = 2;
 	public static final int STATE_PLAYING = 3;
-	public static final int GUN_FIRE_INTERVAL_MILLIS = 300;
+
+	public static final int TEAM_RED = 1;
+	public static final int TEAM_BLUE = 2;
+	public static final int TEAM_GREEN = 3;
+	public static final int TEAM_YELLOW = 4;
+	public static final int TEAM_PURPLE = 5;
+	public static final int TEAM_CYAN = 6;
+
+	public static final int GUN_FIRE_INTERVAL_MILLIS = 400;
 
 	private final PlayerRegistry playerRegistry;
 	private final PhoneCommunication phoneComm;
@@ -34,11 +38,10 @@ public class Game implements GameEventsListener {
 	private volatile int gameState = STATE_IDLE;
 
 	private int fragLimit;
+	private boolean teamPlay = false;
 	private int timeLimitMinutes;
 	private int timeLeftSeconds = 0;
 	private int gameStartDelaySeconds = 5;
-	private final Map<Integer, Integer> playerRespawnCounter;
-
 
 	public Game(PlayerRegistry playerRegistry, PhoneCommunication phoneComm, GunCommunication gunComm, VestCommunication vestComm, AdminConsole adminConsole) {
 		this.playerRegistry = playerRegistry;
@@ -50,9 +53,6 @@ public class Game implements GameEventsListener {
 		vestComm.setGameEventsListener(this);
 		phoneComm.setGameEventsListener(this);
 		adminConsole.setGameEventsListener(this);
-
-		playerRespawnCounter = new HashMap<>();
-		playerRegistry.getPlayers().forEach(player -> playerRespawnCounter.put(player.getId(), 0));
 	}
 
 	private boolean canPlay(Player player) {
@@ -74,26 +74,30 @@ public class Game implements GameEventsListener {
 	public void eventGunReload(Player player) {
 		player.reload();
 		phoneComm.sendEventToPhone(MessageToPhone.GUN_RELOAD, player, 0);
+		sendPlayerStateToGunVest(player);
 		adminConsole.refreshTable();
 	}
 
 	@Override
 	public void eventVestGotHit(Player player, Player hitByPlayer) {
-		if (!canPlay(player) || !canPlay(hitByPlayer) || !hitByPlayer.canHit()) {
+		if (!canPlay(player) || !canPlay(hitByPlayer) || !hitByPlayer.canHit()
+			|| (teamPlay && player.getTeamId() == hitByPlayer.getTeamId())) {
 			return;
 		}
-		player.setHealth(player.getHealth() - SHOT_DAMAGE);
+		player.setHealth(player.getHealth() - hitByPlayer.getDamage());
 		if (player.getHealth() > 0) {
 			phoneComm.sendEventToPhone(MessageToPhone.GOT_HIT, player, hitByPlayer.getId());
 			phoneComm.sendEventToPhone(MessageToPhone.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
-		} else { // killed
+		} else { // killed / scored
 			hitByPlayer.setScore(hitByPlayer.getScore() + 1);
-			phoneComm.sendEventToPhone(MessageToPhone.YOU_KILLED, player, hitByPlayer.getId());
 			phoneComm.sendEventToPhone(MessageToPhone.YOU_SCORED, hitByPlayer, player.getId());
-			if (hitByPlayer.getScore() >= fragLimit) {
+			var score = teamPlay ? playerRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
+			if (score >= fragLimit) {
 				eventConsoleEndGame();
 			} else {
-				playerRespawnCounter.put(player.getId(), player.getRespawnTimeSeconds());
+				phoneComm.sendEventToPhone(MessageToPhone.YOU_KILLED, player, hitByPlayer.getId());
+				sendPlayerStateToGunVest(player);
+				playerRegistry.getPlayerById(player.getId()).setRespawnCounter(player.getRespawnTimeSeconds());
 				scheduler.schedule(() -> respawnPlayer(player), player.getRespawnTimeSeconds(), java.util.concurrent.TimeUnit.SECONDS);
 			}
 		}
@@ -105,10 +109,11 @@ public class Game implements GameEventsListener {
 	public void eventConsoleScheduleStartGame() {
 		timeLimitMinutes = Integer.parseInt(adminConsole.getIndicatorGameTime().getText());
 		fragLimit = Integer.parseInt(adminConsole.getIndicatorFragLimit().getText());
+		teamPlay = adminConsole.getGameTypeTeam().isSelected();
 		for (Player player : playerRegistry.getPlayers()) {
 			player.setScore(0);
 			player.reset();
-			phoneComm.sendEventToPhone(MessageToPhone.GAME_START, player, 0);
+			phoneComm.sendEventToPhone(MessageToPhone.GAME_START, player, teamPlay ? 1 : 0);
 		}
 		timeLeftSeconds = gameStartDelaySeconds;
 		setGameState(STATE_START_PENDING);
@@ -116,15 +121,17 @@ public class Game implements GameEventsListener {
 		adminConsole.refreshTable();
 		adminConsole.getIndicatorGameTime().setEditable(false);
 		adminConsole.getIndicatorFragLimit().setEditable(false);
+		adminConsole.getGameTypeTeam().setEnabled(false);
 		scheduler.schedule(this::startGame, gameStartDelaySeconds, java.util.concurrent.TimeUnit.SECONDS);
 	}
 
 	private void startGame() {
+		setGameState(STATE_PLAYING);
+		timeLeftSeconds = timeLimitMinutes * 60;
 		for (Player player : playerRegistry.getPlayers()) {
 			phoneComm.sendEventToPhone(MessageToPhone.RESPAWN, player, 0);
+			sendPlayerStateToGunVest(player);
 		}
-		timeLeftSeconds = timeLimitMinutes * 60;
-		setGameState(STATE_PLAYING);
 		sendStatsToAllPhones();
 		adminConsole.refreshTable();
 	}
@@ -136,9 +143,14 @@ public class Game implements GameEventsListener {
 		adminConsole.getIndicatorGameTime().setEditable(true);
 		adminConsole.getIndicatorFragLimit().setText(fragLimit+"");
 		adminConsole.getIndicatorFragLimit().setEditable(true);
-		Player winner = playerRegistry.getLeadPlayer();
+		adminConsole.getGameTypeTeam().setEnabled(true);
+
+		Player leadPlayer = playerRegistry.getLeadPlayer();
+		int leadTeam = playerRegistry.getTeamScores().keySet().iterator().next();
+		int winner = teamPlay ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(0);
 		for (Player player : playerRegistry.getPlayers()) {
-			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner == null ? 0 : winner.getId());
+			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner);
+			sendPlayerStateToGunVest(player);
 		}
 		sendStatsToAllPhones();
 	}
@@ -148,11 +160,18 @@ public class Game implements GameEventsListener {
 		adminConsole.refreshTable();
 	}
 
+	@Override
+	public void onPlayerDataUpdated(Player player) {
+		sendStatsToAllPhones();
+		sendPlayerStateToGunVest(player);
+	}
+
 	private void respawnPlayer(Player player) {
 		player.reset();
 		sendStatsToAllPhones();
 		adminConsole.refreshTable();
 		phoneComm.sendEventToPhone(MessageToPhone.RESPAWN, player, 0);
+		sendPlayerStateToGunVest(player);
 	}
 
 	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
@@ -165,9 +184,9 @@ public class Game implements GameEventsListener {
 			}
 			adminConsole.getIndicatorGameTime().setText(String.format("%02d:%02d", timeLeftSeconds / 60, timeLeftSeconds % 60));
 			for (Player player : playerRegistry.getPlayers()) {
-				int counter = playerRespawnCounter.get(player.getId());
+				int counter = player.getRespawnCounter();
 				if (counter > 0) {
-					playerRespawnCounter.put(player.getId(), counter - 1);
+					player.setRespawnCounter(counter - 1);
 					phoneComm.sendGameTimeToPlayer(player, counter / 60, counter % 60);
 				} else {
 					phoneComm.sendGameTimeToPlayer(player, timeLeftSeconds / 60, timeLeftSeconds % 60);
@@ -182,6 +201,7 @@ public class Game implements GameEventsListener {
 	@Override
 	public void deviceConnected(Player player) {
 		sendStatsToAllPhones();
+		sendPlayerStateToGunVest(player);
 	}
 
 	private void setGameState(int newState) {
@@ -198,6 +218,12 @@ public class Game implements GameEventsListener {
 
 	private void sendStatsToAllPhones() {
 		phoneComm.sendStatsToAll(gameState == STATE_PLAYING);
+	}
+
+	private void sendPlayerStateToGunVest(Player player) {
+		boolean gameRunning = gameState == STATE_PLAYING;
+		gunComm.sendPlayerStateToClient(player, gameRunning);
+		vestComm.sendPlayerStateToClient(player, gameRunning);
 	}
 
 }

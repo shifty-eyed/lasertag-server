@@ -35,8 +35,8 @@ public class MessageToPhone {
 		return new byte[]{GAME_TIMER, (byte)minutes, (byte)seconds};
 	}
 
-	public static byte[] eventToBytes(byte type, Player player, int counterpartPlayerId) {
-		return new byte[]{type, (byte)counterpartPlayerId, (byte)player.getHealth(), (byte)player.getScore(), (byte)player.getBulletsLeft()};
+	public static byte[] eventToBytes(byte type, Player player, int extraValue) {
+		return new byte[]{type, (byte)extraValue, (byte)player.getHealth(), (byte)player.getScore(), (byte)player.getBulletsLeft()};
 	}
 
 	public static byte[] playerStatsToBytes(List<Player> players, boolean gameRunning) {
@@ -50,6 +50,7 @@ public class MessageToPhone {
 			data.put((byte)player.getId());
 			data.put((byte)player.getHealth());
 			data.put((byte)player.getScore());
+			data.put((byte)player.getTeamId());
 			data.put((byte)player.getName().length());
 			data.put(player.getName().getBytes());
 		}
@@ -59,7 +60,7 @@ public class MessageToPhone {
 	private static int getPlayersSize(List<Player> players) {
 		int size = 0;
 		for (Player player : players) {
-			size += 4 + player.getName().length(); //id+health+score+namelen+name
+			size += 5 + player.getName().length(); //id+health+score+teamId+namelen+name
 		}
 		return size;
 	}

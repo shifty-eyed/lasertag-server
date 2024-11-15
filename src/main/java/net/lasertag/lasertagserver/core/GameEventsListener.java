@@ -15,5 +15,7 @@ public interface GameEventsListener {
 
 	void refreshConsoleTable();
 
+	void onPlayerDataUpdated(Player player);
+
 	void deviceConnected(Player player);
 }

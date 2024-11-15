@@ -4,9 +4,8 @@ import lombok.Getter;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Getter
@@ -17,8 +16,18 @@ public class PlayerRegistry {
 	public PlayerRegistry() {
 		players.add(new Player(1, "Roma", 100));
 		players.add(new Player(2, "Tima", 100));
-		players.add(new Player(3, "Luka", 90));
-		players.add(new Player(4, "Diana", 90));
+		players.add(new Player(3, "Luka", 100));
+		players.add(new Player(4, "Diana", 100));
+		players.add(new Player(5, "Player5", 100));
+		players.add(new Player(6, "Player6", 100));
+
+	}
+
+	public LinkedHashMap<Integer, Integer> getTeamScores() {
+		return players.stream()
+			.collect(Collectors.groupingBy(Player::getTeamId, Collectors.summingInt(Player::getScore)))
+			.entrySet().stream().sorted(Map.Entry.comparingByValue())
+			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 	}
 
 	public Player getPlayerById(int id) {
