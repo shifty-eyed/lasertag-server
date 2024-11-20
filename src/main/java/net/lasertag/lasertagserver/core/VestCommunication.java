@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.Setter;
 import net.lasertag.lasertagserver.model.MessageFromDevice;
 import net.lasertag.lasertagserver.model.Player;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
@@ -12,12 +13,9 @@ import java.util.concurrent.Executor;
 @Component
 public class VestCommunication extends AbstractUdpServer {
 
-	private final Executor daemonExecutor;
-
 	public VestCommunication(PlayerRegistry playerRegistry,
-							 Executor daemonExecutor) {
-		super(9877, 1234, playerRegistry);
-		this.daemonExecutor = daemonExecutor;
+							 ThreadPoolTaskExecutor daemonExecutor) {
+		super(9877, 1234, playerRegistry, daemonExecutor);
 	}
 
 	@PostConstruct

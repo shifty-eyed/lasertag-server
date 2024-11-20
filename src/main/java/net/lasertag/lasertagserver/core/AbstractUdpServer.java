@@ -4,13 +4,16 @@ import lombok.Setter;
 import net.lasertag.lasertagserver.model.MessageFromDevice;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 public abstract class AbstractUdpServer {
 
@@ -26,10 +29,13 @@ public abstract class AbstractUdpServer {
 	private final int port;
 	private final int devicePort;
 
-	public AbstractUdpServer(int port, int devicePort, PlayerRegistry playerRegistry) {
+	protected final ThreadPoolTaskExecutor daemonExecutor;
+
+	public AbstractUdpServer(int port, int devicePort, PlayerRegistry playerRegistry, ThreadPoolTaskExecutor daemonExecutor) {
 		this.port = port;
 		this.devicePort = devicePort;
 		this.playerRegistry = playerRegistry;
+		this.daemonExecutor = daemonExecutor;
 
 		this.lastPingTime = new ArrayList<>(playerRegistry.getPlayers().size());
 		for (int i = 0; i < playerRegistry.getPlayers().size() + 1; i++) {
@@ -43,15 +49,18 @@ public abstract class AbstractUdpServer {
 
 	public void startUdpServer() {
 		try (DatagramSocket serverSocket = new DatagramSocket(port)) {
-			System.out.printf("UDP Server: %s started on port: %d thread: %s\n",
+			serverSocket.setSoTimeout(1000);
+			System.out.printf("%s started on port: %d thread: %s\n",
 				this.getClass().getSimpleName(), port, Thread.currentThread().getName());
 			byte[] receiveBuffer = new byte[64];
 			while (running) {
 				DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
-				serverSocket.receive(receivePacket);
-				processPacketFromClient(receivePacket);
+				try {
+					serverSocket.receive(receivePacket);
+					processPacketFromClient(receivePacket);
+				} catch (SocketTimeoutException ignored) {}
 			}
-			System.out.println("UDP Server stopped");
+			System.out.println(this.getClass().getSimpleName() + ": UDP Server stopped");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -90,7 +99,8 @@ public abstract class AbstractUdpServer {
 
 	public void stopUdpServer() {
 		running = false;
-		System.out.println("Stopping UDP Server...");
+		daemonExecutor.shutdown();
+		System.out.println(this.getClass().getSimpleName() + ": Stopping UDP Server...");
 	}
 
 	private void processPacketFromClient(DatagramPacket packet) {

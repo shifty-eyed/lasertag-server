@@ -5,6 +5,7 @@ import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.util.Arrays;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,8 +17,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AdminConsole {
-
-	// TODO: Add team score indicator if team play is enabled
 
 	@Getter
 	private JTextField indicatorGameTime;

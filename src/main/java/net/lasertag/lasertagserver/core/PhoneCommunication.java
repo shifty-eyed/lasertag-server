@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import net.lasertag.lasertagserver.model.MessageFromDevice;
 import net.lasertag.lasertagserver.model.MessageToPhone;
 import net.lasertag.lasertagserver.model.Player;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import java.net.DatagramPacket;
@@ -14,11 +15,8 @@ import java.util.concurrent.Executor;
 @Component
 public class PhoneCommunication extends AbstractUdpServer {
 
-	private final Executor daemonExecutor;
-
-	public PhoneCommunication(PlayerRegistry playerRegistry, Executor daemonExecutor) {
-		super(9878, 1234, playerRegistry);
-		this.daemonExecutor = daemonExecutor;
+	public PhoneCommunication(PlayerRegistry playerRegistry, ThreadPoolTaskExecutor daemonExecutor) {
+		super(9878, 1234, playerRegistry, daemonExecutor);
 	}
 
 	@PostConstruct
