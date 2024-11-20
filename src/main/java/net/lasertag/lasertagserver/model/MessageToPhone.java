@@ -39,12 +39,13 @@ public class MessageToPhone {
 		return new byte[]{type, (byte)extraValue, (byte)player.getHealth(), (byte)player.getScore(), (byte)player.getBulletsLeft()};
 	}
 
-	public static byte[] playerStatsToBytes(List<Player> players, boolean gameRunning) {
-		var size = 1 + 1 + 1 + getPlayersSize(players);
+	public static byte[] playerStatsToBytes(List<Player> players, boolean gameRunning, boolean teamPlay) {
+		var size = 1 + 1 + 1 + 1 + getPlayersSize(players);
 		ByteBuffer data = ByteBuffer.allocate(size);
 		data.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 		data.put(FULL_STATS);
 		data.put((byte)(gameRunning ? 1 : 0));
+		data.put((byte)(teamPlay ? 1 : 0));
 		data.put((byte)players.size());
 		for (Player player : players) {
 			data.put((byte)player.getId());

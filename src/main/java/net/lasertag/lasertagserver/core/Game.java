@@ -84,7 +84,7 @@ public class Game implements GameEventsListener {
 			|| (teamPlay && player.getTeamId() == hitByPlayer.getTeamId())) {
 			return;
 		}
-		player.setHealth(player.getHealth() - hitByPlayer.getDamage());
+		player.setHealth(Math.max(0, player.getHealth() - hitByPlayer.getDamage()));
 		if (player.getHealth() > 0) {
 			phoneComm.sendEventToPhone(MessageToPhone.GOT_HIT, player, hitByPlayer.getId());
 			phoneComm.sendEventToPhone(MessageToPhone.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
@@ -101,7 +101,7 @@ public class Game implements GameEventsListener {
 				scheduler.schedule(() -> respawnPlayer(player), player.getRespawnTimeSeconds(), java.util.concurrent.TimeUnit.SECONDS);
 			}
 		}
-		phoneComm.sendStatsToAll(gameState == STATE_PLAYING);
+		sendStatsToAllPhones();
 		adminConsole.refreshTable();
 	}
 
@@ -146,8 +146,8 @@ public class Game implements GameEventsListener {
 		adminConsole.getGameTypeTeam().setEnabled(true);
 
 		Player leadPlayer = playerRegistry.getLeadPlayer();
-		int leadTeam = playerRegistry.getTeamScores().keySet().iterator().next();
-		int winner = teamPlay ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(0);
+		int leadTeam = playerRegistry.getLeadTeam();
+		int winner = teamPlay ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(-1);
 		for (Player player : playerRegistry.getPlayers()) {
 			phoneComm.sendEventToPhone(MessageToPhone.GAME_OVER, player, winner);
 			sendPlayerStateToGunVest(player);
@@ -217,7 +217,7 @@ public class Game implements GameEventsListener {
 	}
 
 	private void sendStatsToAllPhones() {
-		phoneComm.sendStatsToAll(gameState == STATE_PLAYING);
+		phoneComm.sendStatsToAll(gameState == STATE_PLAYING, teamPlay);
 	}
 
 	private void sendPlayerStateToGunVest(Player player) {

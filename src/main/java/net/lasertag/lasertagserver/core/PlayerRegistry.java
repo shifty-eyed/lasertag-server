@@ -53,4 +53,14 @@ public class PlayerRegistry {
 		return leadPlayers.size() == 1 ? leadPlayers.get(0) : null;
 	}
 
+	public int getLeadTeam() {
+		var teamScores = getTeamScores();
+		var maxScore = teamScores.values().stream().max(Integer::compareTo).orElse(0);
+		var leadTeams = teamScores.entrySet().stream()
+			.filter(entry -> Objects.equals(entry.getValue(), maxScore))
+			.map(Map.Entry::getKey)
+			.toList();
+		return leadTeams.size() == 1 ? leadTeams.get(0) : -1;
+	}
+
 }

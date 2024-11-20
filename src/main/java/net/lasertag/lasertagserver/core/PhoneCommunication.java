@@ -45,9 +45,9 @@ public class PhoneCommunication extends AbstractUdpServer {
 		sendBytesToClient(player, bytes);
 	}
 
-	public void sendStatsToAll(boolean isGameRunning) {
-		var bytes = MessageToPhone.playerStatsToBytes(playerRegistry.getPlayersSortedByScore(), isGameRunning);
-		playerRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
+	public void sendStatsToAll(boolean isGameRunning, boolean teamPlay) {
+		var bytes = MessageToPhone.playerStatsToBytes(playerRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay);
+		playerRegistry.getOnlinePlayers().forEach(player -> sendBytesToClient(player, bytes));
 	}
 
 	public void sendGameTimeToAll(int munites, int seconds) {
