@@ -3,15 +3,13 @@ package net.lasertag.lasertagserver.ui;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
-import java.util.Arrays;
 import java.util.Set;
-import java.util.concurrent.Executor;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.lasertag.lasertagserver.core.Game;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.PlayerRegistry;
+import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
 
@@ -122,11 +120,7 @@ public class AdminConsole {
 		playerRegistry.getTeamScores().forEach((teamId, score) -> {
 			JLabel label = new JLabel(" "+score+" ");
 			label.setFont(new Font("Arial", Font.BOLD, 35));
-			//label.setOpaque(true);
-			if (teamId < Game.TEAM_RED || teamId > Game.TEAM_CYAN) {
-				return;
-			}
-			var color = TEAM_COLORS[(teamId - Game.TEAM_RED)];
+			var color = TEAM_COLORS[(teamId - Messaging.TEAM_RED)];
 			label.setForeground(color);
 			scoresContainer.add(label);
 		});
@@ -144,8 +138,8 @@ public class AdminConsole {
 	}
 
 	private class PlayerTableModel extends AbstractTableModel {
-		private final String[] columnNames = {"ID", "Name", "Score", "Health", "MaxHealth", "BulletsLeft", "Magazine", "RespawnTime", "Damage", "Team", "Online"};
-		private final Set<Integer> editableColumns = Set.of(1, 4, 6, 7, 8, 9);
+		private final String[] columnNames = {"ID", "Name", "Score", "Health", "BulletsLeft", "Damage", "Team", "Online"};
+		private final Set<Integer> editableColumns = Set.of(1, 5, 6);
 		@Override
 		public int getRowCount() {
 			return playerRegistry.getPlayers().size();
@@ -169,13 +163,10 @@ public class AdminConsole {
 				case 1 -> player.getName();
 				case 2 -> player.getScore();
 				case 3 -> player.getHealth();
-				case 4 -> player.getMaxHealth();
-				case 5 -> player.getBulletsLeft();
-				case 6 -> player.getMagazineSize();
-				case 7 -> player.getRespawnTimeSeconds();
-				case 8 -> player.getDamage();
-				case 9 -> TEAM_COLORS_NAMES[player.getTeamId() - Game.TEAM_RED];
-				case 10 -> player.devicesOnline();
+				case 4 -> player.getBulletsLeft();
+				case 5 -> player.getDamage();
+				case 6 -> TEAM_COLORS_NAMES[player.getTeamId()];
+				case 7 -> player.devicesOnline();
 				default -> null;
 			};
 		}
@@ -185,18 +176,15 @@ public class AdminConsole {
 			Player player = playerRegistry.getPlayers().get(rowIndex);
 			switch (columnIndex) {
 				case 1 -> player.setName((String) aValue);
-				case 4 -> player.setMaxHealth((Integer) aValue);
-				case 6 -> player.setMagazineSize((Integer) aValue);
-				case 7 -> player.setRespawnTimeSeconds((Integer) aValue);
-				case 8 -> player.setDamage((Integer) aValue);
-				case 9 -> {
+				case 5 -> player.setDamage((Integer) aValue);
+				case 6 -> {
 					for (int i = 0; i < TEAM_COLORS_NAMES.length; i++) {
 						if (TEAM_COLORS_NAMES[i].equals(aValue)) {
-							player.setTeamId(i + Game.TEAM_RED);
+							player.setTeamId(i);
 						}
 					}
 				}
-			};
+			}
 			gameEventsListener.onPlayerDataUpdated(player);
 			fireTableCellUpdated(rowIndex, columnIndex);
 			SwingUtilities.invokeLater(AdminConsole.this::refreshTeamScores);

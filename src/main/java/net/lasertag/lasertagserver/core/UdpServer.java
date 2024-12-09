@@ -1,39 +1,41 @@
 package net.lasertag.lasertagserver.core;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Setter;
-import net.lasertag.lasertagserver.model.MessageFromDevice;
+import net.lasertag.lasertagserver.model.Messaging;
+import static net.lasertag.lasertagserver.model.Messaging.*;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.stereotype.Component;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Executor;
 
-public abstract class AbstractUdpServer {
+@Component
+public class UdpServer {
 
 	@Setter
-	protected GameEventsListener gameEventsListener;
+	private GameEventsListener gameEventsListener;
 
-	protected final PlayerRegistry playerRegistry;
+	private final PlayerRegistry playerRegistry;
 	private final List<Long> lastPingTime;
 
-	private long pingTimeout = 5000;
+	private final long pingTimeout = 5000;
 
 	private volatile boolean running = true;
 	private final int port;
 	private final int devicePort;
 
-	protected final ThreadPoolTaskExecutor daemonExecutor;
+	private final ThreadPoolTaskExecutor daemonExecutor;
 
-	public AbstractUdpServer(int port, int devicePort, PlayerRegistry playerRegistry, ThreadPoolTaskExecutor daemonExecutor) {
-		this.port = port;
-		this.devicePort = devicePort;
+	public UdpServer(PlayerRegistry playerRegistry, ThreadPoolTaskExecutor daemonExecutor) {
+		this.port = 9878;
+		this.devicePort = 1234;
 		this.playerRegistry = playerRegistry;
 		this.daemonExecutor = daemonExecutor;
 
@@ -43,11 +45,13 @@ public abstract class AbstractUdpServer {
 		}
 	}
 
-	protected abstract InetAddress getDeviceIp(Player player);
-	protected abstract void setDeviceIp(Player player, InetAddress ip);
-	protected abstract void onMessageReceived(MessageFromDevice message);
+	@PostConstruct
+	public void init() {
+		daemonExecutor.execute(this::startUdpServer);
+		Runtime.getRuntime().addShutdownHook(new Thread(this::stopUdpServer));
+	}
 
-	public void startUdpServer() {
+	private void startUdpServer() {
 		try (DatagramSocket serverSocket = new DatagramSocket(port)) {
 			serverSocket.setSoTimeout(1000);
 			System.out.printf("%s started on port: %d thread: %s\n",
@@ -68,8 +72,8 @@ public abstract class AbstractUdpServer {
 
 	private void sendAckToClient(Player player) {
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
-			byte[] sendData = new byte[] { 1 };
-			var ip = getDeviceIp(player);
+			byte[] sendData = new byte[] { PING };
+			var ip = player.getClientIp();
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ip, devicePort);
 			clientSocket.send(sendPacket);
 		} catch (Exception e) {
@@ -77,13 +81,8 @@ public abstract class AbstractUdpServer {
 		}
 	}
 
-	public void sendPlayerStateToClient(Player player, boolean gameRunning) {
-		var bytes = MessageFromDevice.playerStateToBytes(player, gameRunning);
-		sendBytesToClient(player, bytes);
-	}
-
-	protected void sendBytesToClient(Player player, byte[] bytes) {
-		var ip = getDeviceIp(player);
+	public void sendBytesToClient(Player player, byte[] bytes) {
+		var ip = player.getClientIp();
 		if (ip == null) {
 			return;
 		}
@@ -105,16 +104,15 @@ public abstract class AbstractUdpServer {
 
 	private void processPacketFromClient(DatagramPacket packet) {
 		try {
-			MessageFromDevice message = MessageFromDevice.fromBytes(packet.getData(), packet.getLength());
+			var message = new MessageFromClient(packet.getData(), packet.getLength());
 			var player = playerRegistry.getPlayerById(message.getPlayerId());
-			if (getDeviceIp(player) == null || message.getHitByPlayerId() != 0) {//getHitByPlayerId cares the flag if device just stated
-				setDeviceIp(player, packet.getAddress());
+			if (player.getClientIp() == null) {
+				player.setClientIp(packet.getAddress());
 				System.out.printf("%s connected to player %d\n", this.getClass().getSimpleName(), player.getId());
 				gameEventsListener.deviceConnected(player);
 			}
 			lastPingTime.set(message.getPlayerId(), System.currentTimeMillis());
-			gameEventsListener.refreshConsoleTable();
-			onMessageReceived(message);
+			gameEventsListener.onMessageFromClient(message);
 			sendAckToClient(playerRegistry.getPlayerById(message.getPlayerId()));
 		} catch (Exception e) {
 			System.out.println("Error parsing message: " + e.getMessage());
@@ -122,20 +120,35 @@ public abstract class AbstractUdpServer {
 	}
 
 	@Scheduled(fixedDelay = 1000)
-	protected void sendHeartBeat() {
+	private void checkConnectedClients() {
 		var currentTime = System.currentTimeMillis();
 		playerRegistry.getPlayers().forEach(player -> {
 			var lastPing = lastPingTime.get(player.getId());
 			if (currentTime - lastPing > pingTimeout) {
-				if (getDeviceIp(player) != null) {
+				if (player.getClientIp() != null) {
 					System.out.printf("%s lost connection to player %d\n", this.getClass().getSimpleName(), player.getId());
-					setDeviceIp(player, null);
+					player.setClientIp(null);
 					if (gameEventsListener != null) {
 						gameEventsListener.refreshConsoleTable();
 					}
 				}
 			}
 		});
+	}
+
+	public void sendEventToPhone(byte type, Player player, int extraValue) {
+		var bytes = Messaging.eventToBytes(type, extraValue);
+		sendBytesToClient(player, bytes);
+	}
+
+	public void sendStatsToAll(boolean isGameRunning, boolean teamPlay) {
+		var bytes = Messaging.playerStatsToBytes(playerRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay);
+		playerRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
+	}
+
+	public void sendTimeCorrectionToPlayer(Player player, int munites, int seconds) {
+		var bytes = Messaging.timeCorrectionToBytes(munites, seconds);
+		sendBytesToClient(player, bytes);
 	}
 
 }
