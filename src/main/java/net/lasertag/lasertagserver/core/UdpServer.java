@@ -106,9 +106,9 @@ public class UdpServer {
 		try {
 			var message = new MessageFromClient(packet.getData(), packet.getLength());
 			var player = playerRegistry.getPlayerById(message.getPlayerId());
-			if (player.getClientIp() == null) {
+			if (player.getClientIp() == null || message.isFirstEverMessage()) {
 				player.setClientIp(packet.getAddress());
-				System.out.printf("%s connected to player %d\n", this.getClass().getSimpleName(), player.getId());
+				System.out.printf("Player %d connected\n", player.getId());
 				gameEventsListener.deviceConnected(player);
 			}
 			lastPingTime.set(message.getPlayerId(), System.currentTimeMillis());

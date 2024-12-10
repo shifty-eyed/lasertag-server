@@ -58,10 +58,6 @@ public class Game implements GameEventsListener {
 				var score = teamPlay ? playerRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
 				if (score >= fragLimit) {
 					eventConsoleEndGame();
-				} else {
-					//todo what to do with respawn timer, maybe do it purely on the phone side, and have 2 time counters, for game and respawn
-					// Messaging.RESPAWN should be sent by the phone to server
-					//scheduler.schedule(() -> respawnPlayer(player), player.getRespawnTimeSeconds(), java.util.concurrent.TimeUnit.SECONDS);
 				}
 			} else {
 				phoneComm.sendEventToPhone(Messaging.YOU_HIT_SOMEONE, hitByPlayer, player.getId());

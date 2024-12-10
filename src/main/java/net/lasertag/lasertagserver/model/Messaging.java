@@ -42,17 +42,29 @@ public abstract class Messaging {
 		private final byte health;
 		private final byte score;
 		private final byte bulletsLeft;
+		private final boolean firstEverMessage;
 
 		public MessageFromClient(byte[] bytes, int length) {
-			if (length != 6) {
+			if (length < 3) {
 				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
 			}
 			this.type = bytes[0];
 			this.playerId = bytes[1];
-			this.otherPlayerId = bytes[2];
-			this.health = bytes[3];
-			this.score = bytes[4];
-			this.bulletsLeft = bytes[5];
+			if (this.type == PING) {
+				this.firstEverMessage = bytes[2] != 0;
+				this.otherPlayerId = 0;
+				this.health = 0;
+				this.score = 0;
+				this.bulletsLeft = 0;
+			} else if (length == 6) {
+				this.otherPlayerId = bytes[2];
+				this.health = bytes[3];
+				this.score = bytes[4];
+				this.bulletsLeft = bytes[5];
+				this.firstEverMessage = false;
+			} else {
+				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
+			}
 		}
 	}
 
