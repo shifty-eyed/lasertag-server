@@ -58,7 +58,7 @@ public class AdminConsole {
 		for (int i = 0; i < TEAM_COLORS_NAMES.length; i++) {
 			teamColorComboBox.addItem(TEAM_COLORS_NAMES[i]);
 		}
-		playerTable.getColumnModel().getColumn(9).setCellEditor(new DefaultCellEditor(teamColorComboBox));
+		playerTable.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(teamColorComboBox));
 
 
 		JScrollPane tableScrollPane = new JScrollPane(playerTable);

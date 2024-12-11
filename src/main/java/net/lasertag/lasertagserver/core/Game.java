@@ -139,6 +139,7 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void deviceConnected(Player player) {
+		adminConsole.refreshTable();
 		sendStatsToAllPhones();
 		if (gameState == STATE_PLAYING) {
 			phoneComm.sendTimeCorrectionToPlayer(player, timeLeftSeconds / 60, timeLeftSeconds % 60);

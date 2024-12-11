@@ -112,8 +112,12 @@ public class UdpServer {
 				gameEventsListener.deviceConnected(player);
 			}
 			lastPingTime.set(message.getPlayerId(), System.currentTimeMillis());
-			gameEventsListener.onMessageFromClient(message);
-			sendAckToClient(playerRegistry.getPlayerById(message.getPlayerId()));
+			if (message.getType() == PING) {
+				sendAckToClient(playerRegistry.getPlayerById(message.getPlayerId()));
+			} else {
+				System.out.printf("Message from client len=%d, data: %s\n",	packet.getLength(), message);
+				gameEventsListener.onMessageFromClient(message);
+			}
 		} catch (Exception e) {
 			System.out.println("Error parsing message: " + e.getMessage());
 		}

@@ -66,6 +66,19 @@ public abstract class Messaging {
 				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
 			}
 		}
+
+		@Override
+		public String toString() {
+			return "MessageFromClient{" +
+				"type=" + type +
+				", p=" + playerId +
+				", other=" + otherPlayerId +
+				", h=" + health +
+				", s=" + score +
+				", b=" + bulletsLeft +
+				", first=" + firstEverMessage +
+				'}';
+		}
 	}
 
 	public static byte[] timeCorrectionToBytes(int minutes, int seconds) {
