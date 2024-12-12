@@ -145,14 +145,9 @@ public class UdpServer {
 		sendBytesToClient(player, bytes);
 	}
 
-	public void sendStatsToAll(boolean isGameRunning, boolean teamPlay) {
-		var bytes = Messaging.playerStatsToBytes(playerRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay);
+	public void sendStatsToAll(boolean isGameRunning, boolean teamPlay, int timeSeconds) {
+		var bytes = Messaging.playerStatsToBytes(playerRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
 		playerRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
-	}
-
-	public void sendTimeCorrectionToPlayer(Player player, int munites, int seconds) {
-		var bytes = Messaging.timeCorrectionToBytes(munites, seconds);
-		sendBytesToClient(player, bytes);
 	}
 
 }

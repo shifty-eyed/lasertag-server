@@ -15,12 +15,12 @@ import java.util.concurrent.ScheduledExecutorService;
 @Getter
 public class Game implements GameEventsListener {
 	public static final int STATE_IDLE = 1;
-	public static final int STATE_START_PENDING = 2;
-	public static final int STATE_PLAYING = 3;
+	public static final int STATE_PLAYING = 2;
 
 	public static final int MAX_HEALTH = 100;
 	public static final int MAGAZINE_SIZE = 10;
 	public static final int RESPAWN_TIME_SECONDS = 20;
+	public static final int GAME_START_DELAY_SECONDS = 8;
 
 	private final PlayerRegistry playerRegistry;
 	private final UdpServer phoneComm;
@@ -62,8 +62,8 @@ public class Game implements GameEventsListener {
 			} else {
 				phoneComm.sendEventToPhone(Messaging.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
 			}
+			sendStatsToAllPhones();
 		}
-		sendStatsToAllPhones();
 		adminConsole.refreshTable();
 	}
 
@@ -72,27 +72,20 @@ public class Game implements GameEventsListener {
 		timeLimitMinutes = Integer.parseInt(adminConsole.getIndicatorGameTime().getText());
 		fragLimit = Integer.parseInt(adminConsole.getIndicatorFragLimit().getText());
 		teamPlay = adminConsole.getGameTypeTeam().isSelected();
-		timeLeftSeconds = timeLimitMinutes * 60 + RESPAWN_TIME_SECONDS;
-		var startGameMessage = Messaging.eventStartGameToBytes(teamPlay, RESPAWN_TIME_SECONDS, timeLimitMinutes);
+		timeLeftSeconds = timeLimitMinutes * 60 + GAME_START_DELAY_SECONDS;
+		var startGameMessage = Messaging.eventStartGameToBytes(teamPlay, RESPAWN_TIME_SECONDS, timeLimitMinutes, GAME_START_DELAY_SECONDS);
 		for (Player player : playerRegistry.getPlayers()) {
 			player.setScore(0);
 			player.setHealth(MAX_HEALTH);
 			player.setBulletsLeft(MAGAZINE_SIZE);
 			phoneComm.sendBytesToClient(player, startGameMessage);
 		}
-		setGameState(STATE_START_PENDING);
+		setGameState(STATE_PLAYING);
 		sendStatsToAllPhones();
 		adminConsole.refreshTable();
 		adminConsole.getIndicatorGameTime().setEditable(false);
 		adminConsole.getIndicatorFragLimit().setEditable(false);
 		adminConsole.getGameTypeTeam().setEnabled(false);
-		scheduler.schedule(this::startGame, RESPAWN_TIME_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
-	}
-
-	private void startGame() {
-		setGameState(STATE_PLAYING);
-		sendStatsToAllPhones();
-		adminConsole.refreshTable();
 	}
 
 	@Override
@@ -132,8 +125,6 @@ public class Game implements GameEventsListener {
 				return;
 			}
 			adminConsole.getIndicatorGameTime().setText(String.format("%02d:%02d", timeLeftSeconds / 60, timeLeftSeconds % 60));
-		} else if (gameState == STATE_START_PENDING) {
-			adminConsole.getIndicatorGameTime().setText(timeLeftSeconds+"...");
 		}
 	}
 
@@ -141,9 +132,6 @@ public class Game implements GameEventsListener {
 	public void deviceConnected(Player player) {
 		adminConsole.refreshTable();
 		sendStatsToAllPhones();
-		if (gameState == STATE_PLAYING) {
-			phoneComm.sendTimeCorrectionToPlayer(player, timeLeftSeconds / 60, timeLeftSeconds % 60);
-		}
 	}
 
 	private void setGameState(int newState) {
@@ -151,7 +139,6 @@ public class Game implements GameEventsListener {
 			gameState = newState;
 			adminConsole.getIndicatorStatus().setText(switch (gameState) {
 				case STATE_IDLE -> "Idle";
-				case STATE_START_PENDING -> "Starting";
 				case STATE_PLAYING -> "Playing";
 				default -> "Unknown";
 			});
@@ -159,7 +146,7 @@ public class Game implements GameEventsListener {
 	}
 
 	private void sendStatsToAllPhones() {
-		phoneComm.sendStatsToAll(gameState == STATE_PLAYING, teamPlay);
+		phoneComm.sendStatsToAll(gameState == STATE_PLAYING, teamPlay, timeLeftSeconds);
 	}
 
 }

@@ -81,30 +81,29 @@ public abstract class Messaging {
 		}
 	}
 
-	public static byte[] timeCorrectionToBytes(int minutes, int seconds) {
-		return new byte[]{GAME_TIMER, (byte)minutes, (byte)seconds};
-	}
-
 	public static byte[] eventToBytes(byte type, int payload) {
 		return new byte[]{type, (byte)payload};
 	}
 
-	public static byte[] eventStartGameToBytes(boolean teamPlay, int respawnTimeSeconds, int gameTimeMinutes) {
+	public static byte[] eventStartGameToBytes(boolean teamPlay, int respawnTimeSeconds, int gameTimeMinutes, int startDelaySeconds) {
 		return new byte[] { GAME_START,
 			(byte)(teamPlay ? 1 : 0),
 			(byte) respawnTimeSeconds,
 			(byte) gameTimeMinutes,
+			(byte) startDelaySeconds,
 		};
 	}
 
 
-	public static byte[] playerStatsToBytes(List<Player> players, boolean gameRunning, boolean teamPlay) {
-		var size = 4 + getPlayersSize(players);
+	public static byte[] playerStatsToBytes(List<Player> players, boolean gameRunning, boolean teamPlay, int timeSeconds) {
+		var size = 6 + getPlayersSize(players);
 		ByteBuffer data = ByteBuffer.allocate(size);
+		data.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 		data.put(FULL_STATS); //byte 1
 		data.put((byte)(gameRunning ? 1 : 0)); //byte 2
 		data.put((byte)(teamPlay ? 1 : 0)); //byte 3
-		data.put((byte)players.size()); //byte 4
+		data.putShort((short)(timeSeconds)); //byte 4,5
+		data.put((byte)players.size()); //byte 6
 		for (Player player : players) {
 			data.put((byte)player.getId()); //byte 1
 			data.put((byte)player.getHealth()); //byte 2
