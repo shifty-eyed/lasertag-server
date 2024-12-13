@@ -145,8 +145,8 @@ public class UdpServer {
 		sendBytesToClient(player, bytes);
 	}
 
-	public void sendStatsToAll(boolean isGameRunning, boolean teamPlay, int timeSeconds) {
-		var bytes = Messaging.playerStatsToBytes(playerRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
+	public void sendStatsToAll(boolean includeNames, boolean isGameRunning, boolean teamPlay, int timeSeconds) {
+		var bytes = Messaging.playerStatsToBytes(includeNames, playerRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
 		playerRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
 	}
 

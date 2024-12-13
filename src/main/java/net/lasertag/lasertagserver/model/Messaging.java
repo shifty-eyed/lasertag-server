@@ -95,8 +95,8 @@ public abstract class Messaging {
 	}
 
 
-	public static byte[] playerStatsToBytes(List<Player> players, boolean gameRunning, boolean teamPlay, int timeSeconds) {
-		var size = 6 + getPlayersSize(players);
+	public static byte[] playerStatsToBytes(boolean includeNames, List<Player> players, boolean gameRunning, boolean teamPlay, int timeSeconds) {
+		var size = 6 + getPlayersSize(players, includeNames);
 		ByteBuffer data = ByteBuffer.allocate(size);
 		data.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 		data.put(FULL_STATS); //byte 1
@@ -110,17 +110,20 @@ public abstract class Messaging {
 			data.put((byte)player.getScore()); //byte 3
 			data.put((byte)player.getTeamId()); //byte 4
 			data.put((byte)player.getDamage()); //byte 5
-			data.put((byte)player.getBulletsLeft()); //byte 6
-			data.put((byte)player.getName().length()); //byte 7
-			data.put(player.getName().getBytes());
+			if (includeNames) {
+				data.put((byte) player.getName().length()); //byte 6
+				data.put(player.getName().getBytes());
+			} else {
+				data.put((byte) 0); //byte 6
+			}
 		}
 		return data.array();
 	}
 
-	private static int getPlayersSize(List<Player> players) {
+	private static int getPlayersSize(List<Player> players, boolean includeNames) {
 		int size = 0;
 		for (Player player : players) {
-			size += 7 + player.getName().length();
+			size += 6 + (includeNames ? player.getName().length() : 0);
 		}
 		return size;
 	}

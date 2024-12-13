@@ -62,7 +62,7 @@ public class Game implements GameEventsListener {
 			} else {
 				phoneComm.sendEventToPhone(Messaging.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
 			}
-			sendStatsToAllPhones();
+			sendPlayerValuesSnapshotToAll(false);
 		}
 		adminConsole.refreshTable();
 	}
@@ -71,7 +71,7 @@ public class Game implements GameEventsListener {
 	public void eventConsoleScheduleStartGame() {
 		timeLimitMinutes = Integer.parseInt(adminConsole.getIndicatorGameTime().getText());
 		fragLimit = Integer.parseInt(adminConsole.getIndicatorFragLimit().getText());
-		teamPlay = adminConsole.getGameTypeTeam().isSelected();
+		teamPlay = adminConsole.getGameTypeTeam().isSelected() && playerRegistry.getTeamScores().size() > 1;
 		timeLeftSeconds = timeLimitMinutes * 60 + GAME_START_DELAY_SECONDS;
 		var startGameMessage = Messaging.eventStartGameToBytes(teamPlay, RESPAWN_TIME_SECONDS, timeLimitMinutes, GAME_START_DELAY_SECONDS);
 		for (Player player : playerRegistry.getPlayers()) {
@@ -81,7 +81,7 @@ public class Game implements GameEventsListener {
 			phoneComm.sendBytesToClient(player, startGameMessage);
 		}
 		setGameState(STATE_PLAYING);
-		sendStatsToAllPhones();
+		sendPlayerValuesSnapshotToAll(true);
 		adminConsole.refreshTable();
 		adminConsole.getIndicatorGameTime().setEditable(false);
 		adminConsole.getIndicatorFragLimit().setEditable(false);
@@ -103,7 +103,7 @@ public class Game implements GameEventsListener {
 		for (Player player : playerRegistry.getPlayers()) {
 			phoneComm.sendEventToPhone(Messaging.GAME_OVER, player, winner);
 		}
-		sendStatsToAllPhones();
+		sendPlayerValuesSnapshotToAll(false);
 	}
 
 	@Override
@@ -112,8 +112,8 @@ public class Game implements GameEventsListener {
 	}
 
 	@Override
-	public void onPlayerDataUpdated(Player player) {
-		sendStatsToAllPhones();
+	public void onPlayerDataUpdated(Player player, boolean isNameUpdated) {
+		sendPlayerValuesSnapshotToAll(isNameUpdated);
 	}
 
 	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
@@ -131,7 +131,7 @@ public class Game implements GameEventsListener {
 	@Override
 	public void deviceConnected(Player player) {
 		adminConsole.refreshTable();
-		sendStatsToAllPhones();
+		sendPlayerValuesSnapshotToAll(true);
 	}
 
 	private void setGameState(int newState) {
@@ -145,8 +145,8 @@ public class Game implements GameEventsListener {
 		}
 	}
 
-	private void sendStatsToAllPhones() {
-		phoneComm.sendStatsToAll(gameState == STATE_PLAYING, teamPlay, timeLeftSeconds);
+	private void sendPlayerValuesSnapshotToAll(boolean includeNames) {
+		phoneComm.sendStatsToAll(includeNames, gameState == STATE_PLAYING, teamPlay, timeLeftSeconds);
 	}
 
 }

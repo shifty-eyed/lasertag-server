@@ -185,7 +185,7 @@ public class AdminConsole {
 					}
 				}
 			}
-			gameEventsListener.onPlayerDataUpdated(player);
+			gameEventsListener.onPlayerDataUpdated(player, columnIndex == 1);
 			fireTableCellUpdated(rowIndex, columnIndex);
 			SwingUtilities.invokeLater(AdminConsole.this::refreshTeamScores);
 		}

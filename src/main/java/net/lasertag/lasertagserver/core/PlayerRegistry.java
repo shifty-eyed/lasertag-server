@@ -24,9 +24,10 @@ public class PlayerRegistry {
 	}
 
 	public LinkedHashMap<Integer, Integer> getTeamScores() {
+		// teamId -> score, sorted by highest score
 		return players.stream()
 			.collect(Collectors.groupingBy(Player::getTeamId, Collectors.summingInt(Player::getScore)))
-			.entrySet().stream().sorted(Map.Entry.comparingByValue())
+			.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
 			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 	}
 
