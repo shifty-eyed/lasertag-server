@@ -8,7 +8,7 @@ import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 import net.lasertag.lasertagserver.core.GameEventsListener;
-import net.lasertag.lasertagserver.core.PlayerRegistry;
+import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
@@ -25,7 +25,7 @@ public class AdminConsole {
 	@Getter
 	private JCheckBox gameTypeTeam;
 
-	private final PlayerRegistry playerRegistry;
+	private final ActorRegistry actorRegistry;
 	@Setter
 	private GameEventsListener gameEventsListener;
 
@@ -35,8 +35,8 @@ public class AdminConsole {
 	private static final Color[] TEAM_COLORS = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN};
 	private static final String[] TEAM_COLORS_NAMES = {"Red", "Blue", "Green", "Yellow", "Magenta", "Cyan"};
 
-	public AdminConsole(PlayerRegistry playerRegistry) {
-		this.playerRegistry = playerRegistry;
+	public AdminConsole(ActorRegistry actorRegistry) {
+		this.actorRegistry = actorRegistry;
 		SwingUtilities.invokeLater(this::initUI);
 	}
 
@@ -117,7 +117,7 @@ public class AdminConsole {
 		if (!gameTypeTeam.isSelected()) {
 			return;
 		}
-		playerRegistry.getTeamScores().forEach((teamId, score) -> {
+		actorRegistry.getTeamScores().forEach((teamId, score) -> {
 			JLabel label = new JLabel(" "+score+" ");
 			label.setFont(new Font("Arial", Font.BOLD, 35));
 			var color = TEAM_COLORS[(teamId - Messaging.TEAM_RED)];
@@ -142,7 +142,7 @@ public class AdminConsole {
 		private final Set<Integer> editableColumns = Set.of(1, 5, 6);
 		@Override
 		public int getRowCount() {
-			return playerRegistry.getPlayers().size();
+			return actorRegistry.getPlayers().size();
 		}
 
 		@Override
@@ -157,23 +157,23 @@ public class AdminConsole {
 
 		@Override
 		public Object getValueAt(int rowIndex, int columnIndex) {
-			Player player = playerRegistry.getPlayers().get(rowIndex);
+			Player player = actorRegistry.getPlayers().get(rowIndex);
 			return switch (columnIndex) {
 				case 0 -> player.getId();
 				case 1 -> player.getName();
 				case 2 -> player.getScore();
 				case 3 -> player.getHealth();
-				case 4 -> player.getBulletsLeft();
+				case 4 -> player.getBulletsMax();
 				case 5 -> player.getDamage();
 				case 6 -> TEAM_COLORS_NAMES[player.getTeamId()];
-				case 7 -> player.devicesOnline();
+				case 7 -> player.isOnline() ? "\u2713" : "";
 				default -> null;
 			};
 		}
 
 		@Override
 		public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-			Player player = playerRegistry.getPlayers().get(rowIndex);
+			Player player = actorRegistry.getPlayers().get(rowIndex);
 			switch (columnIndex) {
 				case 1 -> player.setName((String) aValue);
 				case 5 -> player.setDamage((Integer) aValue);

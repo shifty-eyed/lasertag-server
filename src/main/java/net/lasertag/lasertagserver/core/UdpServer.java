@@ -22,7 +22,7 @@ public class UdpServer {
 	@Setter
 	private GameEventsListener gameEventsListener;
 
-	private final PlayerRegistry playerRegistry;
+	private final ActorRegistry actorRegistry;
 	private final List<Long> lastPingTime;
 
 	private final long pingTimeout = 5000;
@@ -33,14 +33,14 @@ public class UdpServer {
 
 	private final ThreadPoolTaskExecutor daemonExecutor;
 
-	public UdpServer(PlayerRegistry playerRegistry, ThreadPoolTaskExecutor daemonExecutor) {
+	public UdpServer(ActorRegistry actorRegistry, ThreadPoolTaskExecutor daemonExecutor) {
 		this.port = 9878;
 		this.devicePort = 1234;
-		this.playerRegistry = playerRegistry;
+		this.actorRegistry = actorRegistry;
 		this.daemonExecutor = daemonExecutor;
 
-		this.lastPingTime = new ArrayList<>(playerRegistry.getPlayers().size());
-		for (int i = 0; i < playerRegistry.getPlayers().size() + 1; i++) {
+		this.lastPingTime = new ArrayList<>(actorRegistry.getPlayers().size());
+		for (int i = 0; i < actorRegistry.getPlayers().size() + 1; i++) {
 			lastPingTime.add(0L);
 		}
 	}
@@ -72,7 +72,7 @@ public class UdpServer {
 
 	private void sendAckToClient(Player player) {
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
-			byte[] sendData = new byte[] { PING };
+			byte[] sendData = new byte[] {PLAYER_PING};
 			var ip = player.getClientIp();
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ip, devicePort);
 			clientSocket.send(sendPacket);
@@ -105,15 +105,15 @@ public class UdpServer {
 	private void processPacketFromClient(DatagramPacket packet) {
 		try {
 			var message = new MessageFromClient(packet.getData(), packet.getLength());
-			var player = playerRegistry.getPlayerById(message.getPlayerId());
-			if (player.getClientIp() == null || message.isFirstEverMessage()) {
-				player.setClientIp(packet.getAddress());
-				System.out.printf("Player %d connected\n", player.getId());
-				gameEventsListener.deviceConnected(player);
+			var actor = actorRegistry.getActorByMessage(message);
+			if (actor.getClientIp() == null || message.isFirstEverMessage()) {
+				actor.setClientIp(packet.getAddress());
+				System.out.printf("%s %d connected\n", actor.getType().name(), actor.getId());
+				gameEventsListener.refreshConsoleTable();
 			}
-			lastPingTime.set(message.getPlayerId(), System.currentTimeMillis());
-			if (message.getType() == PING) {
-				sendAckToClient(playerRegistry.getPlayerById(message.getPlayerId()));
+			lastPingTime.set(message.getActorId(), System.currentTimeMillis());
+			if (message.getType() == PLAYER_PING) {
+				sendAckToClient(actorRegistry.getPlayerById(message.getActorId()));
 			} else {
 				System.out.printf("Message from client len=%d, data: %s\n",	packet.getLength(), message);
 				gameEventsListener.onMessageFromClient(message);
@@ -126,7 +126,7 @@ public class UdpServer {
 	@Scheduled(fixedDelay = 1000)
 	private void checkConnectedClients() {
 		var currentTime = System.currentTimeMillis();
-		playerRegistry.getPlayers().forEach(player -> {
+		actorRegistry.getPlayers().forEach(player -> {
 			var lastPing = lastPingTime.get(player.getId());
 			if (currentTime - lastPing > pingTimeout) {
 				if (player.getClientIp() != null) {
@@ -146,8 +146,8 @@ public class UdpServer {
 	}
 
 	public void sendStatsToAll(boolean includeNames, boolean isGameRunning, boolean teamPlay, int timeSeconds) {
-		var bytes = Messaging.playerStatsToBytes(includeNames, playerRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
-		playerRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
+		var bytes = Messaging.playerStatsToBytes(includeNames, actorRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
+		actorRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
 	}
 
 }

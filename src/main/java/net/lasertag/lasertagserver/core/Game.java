@@ -1,6 +1,7 @@
 package net.lasertag.lasertagserver.core;
 
 import lombok.Getter;
+import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 import net.lasertag.lasertagserver.ui.AdminConsole;
@@ -18,11 +19,8 @@ public class Game implements GameEventsListener {
 	public static final int STATE_PLAYING = 2;
 
 	public static final int MAX_HEALTH = 100;
-	public static final int MAGAZINE_SIZE = 10;
-	public static final int RESPAWN_TIME_SECONDS = 20;
-	public static final int GAME_START_DELAY_SECONDS = 8;
 
-	private final PlayerRegistry playerRegistry;
+	private final ActorRegistry actorRegistry;
 	private final UdpServer phoneComm;
 	private final AdminConsole adminConsole;
 	private final ScheduledExecutorService scheduler =
@@ -35,8 +33,8 @@ public class Game implements GameEventsListener {
 	private int timeLimitMinutes;
 	private int timeLeftSeconds = 0;
 
-	public Game(PlayerRegistry playerRegistry, UdpServer phoneComm, AdminConsole adminConsole) {
-		this.playerRegistry = playerRegistry;
+	public Game(ActorRegistry actorRegistry, UdpServer phoneComm, AdminConsole adminConsole) {
+		this.actorRegistry = actorRegistry;
 		this.phoneComm = phoneComm;
 		this.adminConsole = adminConsole;
 		phoneComm.setGameEventsListener(this);
@@ -45,17 +43,16 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void onMessageFromClient(Messaging.MessageFromClient message) {
-		var player = playerRegistry.getPlayerById(message.getPlayerId());
+		var player = actorRegistry.getPlayerById(message.getActorId());
 		player.setHealth(message.getHealth());
 		player.setScore(message.getScore());
-		player.setBulletsLeft(message.getBulletsLeft());
 
 		if (message.getType() == Messaging.GOT_HIT || message.getType() == Messaging.YOU_KILLED) {
-			var hitByPlayer = playerRegistry.getPlayerById(message.getOtherPlayerId());
+			var hitByPlayer = actorRegistry.getPlayerById(message.getExtraValue());
 			if (message.getType() == Messaging.YOU_KILLED) {
 				hitByPlayer.setScore(hitByPlayer.getScore() + 1);//may not need because of the score update from the phone
 				phoneComm.sendEventToPhone(Messaging.YOU_SCORED, hitByPlayer, player.getId());
-				var score = teamPlay ? playerRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
+				var score = teamPlay ? actorRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
 				if (score >= fragLimit) {
 					eventConsoleEndGame();
 				}
@@ -64,6 +61,7 @@ public class Game implements GameEventsListener {
 			}
 			sendPlayerValuesSnapshotToAll(false);
 		}
+		//todo: handle dispensers
 		adminConsole.refreshTable();
 	}
 
@@ -71,17 +69,24 @@ public class Game implements GameEventsListener {
 	public void eventConsoleScheduleStartGame() {
 		timeLimitMinutes = Integer.parseInt(adminConsole.getIndicatorGameTime().getText());
 		fragLimit = Integer.parseInt(adminConsole.getIndicatorFragLimit().getText());
-		teamPlay = adminConsole.getGameTypeTeam().isSelected() && playerRegistry.getTeamScores().size() > 1;
-		timeLeftSeconds = timeLimitMinutes * 60 + GAME_START_DELAY_SECONDS;
-		var startGameMessage = Messaging.eventStartGameToBytes(teamPlay, RESPAWN_TIME_SECONDS, timeLimitMinutes, GAME_START_DELAY_SECONDS);
-		for (Player player : playerRegistry.getPlayers()) {
+		teamPlay = adminConsole.getGameTypeTeam().isSelected() && actorRegistry.getTeamScores().size() > 1;
+		timeLeftSeconds = timeLimitMinutes * 60;
+
+		var respawnPointsIt = actorRegistry.shuffledRespawnPointIds().iterator();
+		actorRegistry.streamPlayers().forEach(player -> {
 			player.setScore(0);
 			player.setHealth(MAX_HEALTH);
-			player.setBulletsLeft(MAGAZINE_SIZE);
-			phoneComm.sendBytesToClient(player, startGameMessage);
-		}
+			player.setAssignedRespawnPoint(respawnPointsIt.next());
+		});
+
 		setGameState(STATE_PLAYING);
+
 		sendPlayerValuesSnapshotToAll(true);
+		var startGameMessage = Messaging.eventStartGameToBytes(teamPlay, timeLimitMinutes);
+		actorRegistry.streamPlayers().forEach(player -> {
+			phoneComm.sendBytesToClient(player, startGameMessage);
+		});
+
 		adminConsole.refreshTable();
 		adminConsole.getIndicatorGameTime().setEditable(false);
 		adminConsole.getIndicatorFragLimit().setEditable(false);
@@ -97,10 +102,10 @@ public class Game implements GameEventsListener {
 		adminConsole.getIndicatorFragLimit().setEditable(true);
 		adminConsole.getGameTypeTeam().setEnabled(true);
 
-		Player leadPlayer = playerRegistry.getLeadPlayer();
-		int leadTeam = playerRegistry.getLeadTeam();
+		Player leadPlayer = actorRegistry.getLeadPlayer();
+		int leadTeam = actorRegistry.getLeadTeam();
 		int winner = teamPlay ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(-1);
-		for (Player player : playerRegistry.getPlayers()) {
+		for (Player player : actorRegistry.getPlayers()) {
 			phoneComm.sendEventToPhone(Messaging.GAME_OVER, player, winner);
 		}
 		sendPlayerValuesSnapshotToAll(false);
@@ -109,6 +114,7 @@ public class Game implements GameEventsListener {
 	@Override
 	public void refreshConsoleTable() {
 		adminConsole.refreshTable();
+		sendPlayerValuesSnapshotToAll(true);
 	}
 
 	@Override
@@ -126,12 +132,6 @@ public class Game implements GameEventsListener {
 			}
 			adminConsole.getIndicatorGameTime().setText(String.format("%02d:%02d", timeLeftSeconds / 60, timeLeftSeconds % 60));
 		}
-	}
-
-	@Override
-	public void deviceConnected(Player player) {
-		adminConsole.refreshTable();
-		sendPlayerValuesSnapshotToAll(true);
 	}
 
 	private void setGameState(int newState) {

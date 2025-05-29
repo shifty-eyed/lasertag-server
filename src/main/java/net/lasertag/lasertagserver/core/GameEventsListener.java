@@ -13,6 +13,4 @@ public interface GameEventsListener {
 	void refreshConsoleTable();
 
 	void onPlayerDataUpdated(Player player, boolean isNameUpdated);
-
-	void deviceConnected(Player player);
 }

@@ -4,13 +4,13 @@ import lombok.Getter;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public abstract class Messaging {
 
-	public static final byte PING = 1;
-	public static final byte GUN_SHOT = 2;
-	public static final byte GUN_RELOAD = 3;
+	public static final byte PLAYER_PING = 1;
 	public static final byte YOU_HIT_SOMEONE = 4;
 	public static final byte GOT_HIT = 5;
 	public static final byte RESPAWN = 6;
@@ -19,8 +19,19 @@ public abstract class Messaging {
 	public static final byte YOU_KILLED = 9;
 	public static final byte YOU_SCORED = 10;
 	public static final byte FULL_STATS = 11;
-	public static final byte GUN_NO_BULLETS = 12;
+
 	public static final byte DEVICE_PLAYER_STATE = 13;
+
+	public static final byte RESPAWN_POINT_PING = 14;
+	public static final byte HEALTH_DISPENSER_PING = 15;
+	public static final byte AMMO_DISPENSER_PING = 16;
+
+	//todo implement sending of these events
+	public static final byte DISPENSER_USED = 17;
+	public static final byte DISPENSER_SET_AMOUNT = 18;
+	public static final byte DISPENSER_SET_TIMEOUT = 19;
+
+
 
 	public static final byte GAME_TIMER = 101;
 	public static final byte LOST_CONNECTION = 102;
@@ -32,16 +43,16 @@ public abstract class Messaging {
 	public static final int TEAM_PURPLE = 4;
 	public static final int TEAM_CYAN = 5;
 
+	public static final Set<Byte> PING_GROUP = new HashSet<>(Arrays.asList(PLAYER_PING, RESPAWN_POINT_PING, HEALTH_DISPENSER_PING, AMMO_DISPENSER_PING));
 
 	@Getter
 	public static class MessageFromClient extends Messaging {
 
 		private final byte type;
-		private final byte playerId;
-		private final byte otherPlayerId;
+		private final byte actorId;
+		private final byte extraValue;
 		private final byte health;
-		private final byte score;
-		private final byte bulletsLeft;
+		private final byte score;//?
 		private final boolean firstEverMessage;
 
 		public MessageFromClient(byte[] bytes, int length) {
@@ -49,18 +60,16 @@ public abstract class Messaging {
 				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
 			}
 			this.type = bytes[0];
-			this.playerId = bytes[1];
-			if (this.type == PING) {
+			this.actorId = bytes[1];
+			if (PING_GROUP.contains(this.type)) {
 				this.firstEverMessage = bytes[2] != 0;
-				this.otherPlayerId = 0;
+				this.extraValue = 0;
 				this.health = 0;
 				this.score = 0;
-				this.bulletsLeft = 0;
 			} else if (length == 6) {
-				this.otherPlayerId = bytes[2];
+				this.extraValue = bytes[2];
 				this.health = bytes[3];
 				this.score = bytes[4];
-				this.bulletsLeft = bytes[5];
 				this.firstEverMessage = false;
 			} else {
 				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
@@ -71,11 +80,10 @@ public abstract class Messaging {
 		public String toString() {
 			return "MessageFromClient{" +
 				"type=" + type +
-				", p=" + playerId +
-				", other=" + otherPlayerId +
+				", p=" + actorId +
+				", extraValue=" + extraValue +
 				", h=" + health +
 				", s=" + score +
-				", b=" + bulletsLeft +
 				", first=" + firstEverMessage +
 				'}';
 		}
@@ -85,15 +93,12 @@ public abstract class Messaging {
 		return new byte[]{type, (byte)payload};
 	}
 
-	public static byte[] eventStartGameToBytes(boolean teamPlay, int respawnTimeSeconds, int gameTimeMinutes, int startDelaySeconds) {
+	public static byte[] eventStartGameToBytes(boolean teamPlay, int gameTimeMinutes) {
 		return new byte[] { GAME_START,
 			(byte)(teamPlay ? 1 : 0),
-			(byte) respawnTimeSeconds,
-			(byte) gameTimeMinutes,
-			(byte) startDelaySeconds,
+			(byte) gameTimeMinutes
 		};
 	}
-
 
 	public static byte[] playerStatsToBytes(boolean includeNames, List<Player> players, boolean gameRunning, boolean teamPlay, int timeSeconds) {
 		var size = 6 + getPlayersSize(players, includeNames);
