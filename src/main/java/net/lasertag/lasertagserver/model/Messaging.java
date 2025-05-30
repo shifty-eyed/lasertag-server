@@ -10,7 +10,7 @@ import java.util.Set;
 
 public abstract class Messaging {
 
-	public static final byte PLAYER_PING = 1;
+	public static final byte PING = 1;
 	public static final byte YOU_HIT_SOMEONE = 4;
 	public static final byte GOT_HIT = 5;
 	public static final byte RESPAWN = 6;
@@ -22,16 +22,20 @@ public abstract class Messaging {
 
 	public static final byte DEVICE_PLAYER_STATE = 13;
 
-	public static final byte RESPAWN_POINT_PING = 14;
-	public static final byte HEALTH_DISPENSER_PING = 15;
-	public static final byte AMMO_DISPENSER_PING = 16;
+	public static final byte GOT_HEALTH = 16;
+	public static final byte GOT_AMMO = 17;
+	public static final byte GOT_FLAG = 18;
+
+	public static final byte PLAYER_PING = 41;
+	public static final byte RESPAWN_POINT_PING = 44;
+	public static final byte HEALTH_DISPENSER_PING = 45;
+	public static final byte AMMO_DISPENSER_PING = 46;
+
 
 	//todo implement sending of these events
-	public static final byte DISPENSER_USED = 17;
-	public static final byte DISPENSER_SET_AMOUNT = 18;
-	public static final byte DISPENSER_SET_TIMEOUT = 19;
-
-
+	public static final byte DISPENSER_USED = 51;
+	public static final byte DISPENSER_SET_AMOUNT = 52;
+	public static final byte DISPENSER_SET_TIMEOUT = 53;
 
 	public static final byte GAME_TIMER = 101;
 	public static final byte LOST_CONNECTION = 102;
@@ -52,7 +56,6 @@ public abstract class Messaging {
 		private final byte actorId;
 		private final byte extraValue;
 		private final byte health;
-		private final byte score;//?
 		private final boolean firstEverMessage;
 
 		public MessageFromClient(byte[] bytes, int length) {
@@ -65,11 +68,9 @@ public abstract class Messaging {
 				this.firstEverMessage = bytes[2] != 0;
 				this.extraValue = 0;
 				this.health = 0;
-				this.score = 0;
 			} else if (length == 6) {
 				this.extraValue = bytes[2];
 				this.health = bytes[3];
-				this.score = bytes[4];
 				this.firstEverMessage = false;
 			} else {
 				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
@@ -83,7 +84,6 @@ public abstract class Messaging {
 				", p=" + actorId +
 				", extraValue=" + extraValue +
 				", h=" + health +
-				", s=" + score +
 				", first=" + firstEverMessage +
 				'}';
 		}
@@ -115,11 +115,14 @@ public abstract class Messaging {
 			data.put((byte)player.getScore()); //byte 3
 			data.put((byte)player.getTeamId()); //byte 4
 			data.put((byte)player.getDamage()); //byte 5
+			data.put((byte)player.getBulletsMax()); //byte 6
+			data.put((byte)player.getAssignedRespawnPoint()); //byte 7
+			data.put(player.isFlagCarrier() ? (byte) 1 : (byte) 0); //byte 8
 			if (includeNames) {
-				data.put((byte) player.getName().length()); //byte 6
+				data.put((byte) player.getName().length()); //byte 9
 				data.put(player.getName().getBytes());
 			} else {
-				data.put((byte) 0); //byte 6
+				data.put((byte) 0); //byte 9
 			}
 		}
 		return data.array();
@@ -128,7 +131,7 @@ public abstract class Messaging {
 	private static int getPlayersSize(List<Player> players, boolean includeNames) {
 		int size = 0;
 		for (Player player : players) {
-			size += 6 + (includeNames ? player.getName().length() : 0);
+			size += 9 + (includeNames ? player.getName().length() : 0);
 		}
 		return size;
 	}

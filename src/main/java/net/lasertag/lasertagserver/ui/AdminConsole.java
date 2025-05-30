@@ -2,7 +2,9 @@ package net.lasertag.lasertagserver.ui;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
+import java.util.Arrays;
 import java.util.Set;
 
 import lombok.Getter;
@@ -59,6 +61,33 @@ public class AdminConsole {
 			teamColorComboBox.addItem(TEAM_COLORS_NAMES[i]);
 		}
 		playerTable.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(teamColorComboBox));
+
+		// Set custom renderer for all cells to change row background based on online status
+		playerTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+			@Override
+			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+				java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+				if (row < actorRegistry.getPlayers().size()) {
+					Player player = actorRegistry.getPlayers().get(row);
+					if (player != null) {
+						if (player.isOnline()) {
+							c.setForeground(new Color(200, 255, 255)); // Light green for online
+						} else {
+							c.setForeground(new Color(200, 150, 100)); // Light red for offline
+						}
+					} else {
+						c.setBackground(table.getBackground());
+					}
+				}
+				return c;
+			}
+		});
+
+		Arrays.asList(0, 2, 3, 4, 5, 7).forEach(index -> {
+			playerTable.getColumnModel().getColumn(index).setPreferredWidth(30);
+		});
+		playerTable.getColumnModel().getColumn(1).setPreferredWidth(250); // Name
+		playerTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Team
 
 
 		JScrollPane tableScrollPane = new JScrollPane(playerTable);
@@ -138,8 +167,8 @@ public class AdminConsole {
 	}
 
 	private class PlayerTableModel extends AbstractTableModel {
-		private final String[] columnNames = {"ID", "Name", "Score", "Health", "BulletsLeft", "Damage", "Team", "Online"};
-		private final Set<Integer> editableColumns = Set.of(1, 5, 6);
+		private final String[] columnNames = {"ID", "Name", "Score", "Health", "MaxBullets", "Damage", "Team", "R-point"};
+		private final Set<Integer> editableColumns = Set.of(1, 4, 5, 6);
 		@Override
 		public int getRowCount() {
 			return actorRegistry.getPlayers().size();
@@ -166,7 +195,7 @@ public class AdminConsole {
 				case 4 -> player.getBulletsMax();
 				case 5 -> player.getDamage();
 				case 6 -> TEAM_COLORS_NAMES[player.getTeamId()];
-				case 7 -> player.isOnline() ? "\u2713" : "";
+				case 7 -> player.getAssignedRespawnPoint() == -1 ? "" : player.getAssignedRespawnPoint();
 				default -> null;
 			};
 		}
@@ -176,6 +205,7 @@ public class AdminConsole {
 			Player player = actorRegistry.getPlayers().get(rowIndex);
 			switch (columnIndex) {
 				case 1 -> player.setName((String) aValue);
+				case 4 -> player.setBulletsMax((Integer) aValue);
 				case 5 -> player.setDamage((Integer) aValue);
 				case 6 -> {
 					for (int i = 0; i < TEAM_COLORS_NAMES.length; i++) {
@@ -197,7 +227,7 @@ public class AdminConsole {
 
 		@Override
 		public Class<?> getColumnClass(int columnIndex) {
-			if (columnIndex == 1 || columnIndex == 9) {
+			if (columnIndex == 1) {
 				return String.class;
 			} else {
 				return Integer.class;
@@ -208,4 +238,3 @@ public class AdminConsole {
 
 
 }
-

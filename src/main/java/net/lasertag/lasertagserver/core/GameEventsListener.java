@@ -4,7 +4,7 @@ import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 
 public interface GameEventsListener {
-	void onMessageFromClient(Messaging.MessageFromClient message);
+	void onMessageFromPlayer(Player player, Messaging.MessageFromClient message);
 
 	void eventConsoleScheduleStartGame();
 

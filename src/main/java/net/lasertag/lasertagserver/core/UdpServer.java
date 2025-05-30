@@ -2,6 +2,7 @@ package net.lasertag.lasertagserver.core;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Setter;
+import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Messaging;
 import static net.lasertag.lasertagserver.model.Messaging.*;
 import net.lasertag.lasertagserver.model.Player;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,10 +72,9 @@ public class UdpServer {
 		}
 	}
 
-	private void sendAckToClient(Player player) {
+	private void sendAckToClient(InetAddress ip) {
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
-			byte[] sendData = new byte[] {PLAYER_PING};
-			var ip = player.getClientIp();
+			byte[] sendData = new byte[] {PING};
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ip, devicePort);
 			clientSocket.send(sendPacket);
 		} catch (Exception e) {
@@ -81,8 +82,7 @@ public class UdpServer {
 		}
 	}
 
-	public void sendBytesToClient(Player player, byte[] bytes) {
-		var ip = player.getClientIp();
+	public void sendBytesToClient(InetAddress ip, byte[] bytes) {
 		if (ip == null) {
 			return;
 		}
@@ -112,11 +112,11 @@ public class UdpServer {
 				gameEventsListener.refreshConsoleTable();
 			}
 			lastPingTime.set(message.getActorId(), System.currentTimeMillis());
-			if (message.getType() == PLAYER_PING) {
-				sendAckToClient(actorRegistry.getPlayerById(message.getActorId()));
+			if (PING_GROUP.contains(message.getType())) {
+				sendAckToClient(actor.getClientIp());
 			} else {
 				System.out.printf("Message from client len=%d, data: %s\n",	packet.getLength(), message);
-				gameEventsListener.onMessageFromClient(message);
+				gameEventsListener.onMessageFromPlayer((Player)actor, message);
 			}
 		} catch (Exception e) {
 			System.out.println("Error parsing message: " + e.getMessage());
@@ -140,14 +140,14 @@ public class UdpServer {
 		});
 	}
 
-	public void sendEventToPhone(byte type, Player player, int extraValue) {
+	public void sendEventToClient(byte type, Actor actor, int extraValue) {
 		var bytes = Messaging.eventToBytes(type, extraValue);
-		sendBytesToClient(player, bytes);
+		sendBytesToClient(actor.getClientIp(), bytes);
 	}
 
 	public void sendStatsToAll(boolean includeNames, boolean isGameRunning, boolean teamPlay, int timeSeconds) {
 		var bytes = Messaging.playerStatsToBytes(includeNames, actorRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
-		actorRegistry.getPlayers().forEach(player -> sendBytesToClient(player, bytes));
+		actorRegistry.getPlayers().forEach(player -> sendBytesToClient(player.getClientIp(), bytes));
 	}
 
 }

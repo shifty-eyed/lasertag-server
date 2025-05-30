@@ -21,7 +21,7 @@ public class Game implements GameEventsListener {
 	public static final int MAX_HEALTH = 100;
 
 	private final ActorRegistry actorRegistry;
-	private final UdpServer phoneComm;
+	private final UdpServer udpServer;
 	private final AdminConsole adminConsole;
 	private final ScheduledExecutorService scheduler =
 		Executors.newScheduledThreadPool(2, new DaemonThreadFactory("DaemonScheduler"));
@@ -33,35 +33,39 @@ public class Game implements GameEventsListener {
 	private int timeLimitMinutes;
 	private int timeLeftSeconds = 0;
 
-	public Game(ActorRegistry actorRegistry, UdpServer phoneComm, AdminConsole adminConsole) {
+	public Game(ActorRegistry actorRegistry, UdpServer udpServer, AdminConsole adminConsole) {
 		this.actorRegistry = actorRegistry;
-		this.phoneComm = phoneComm;
+		this.udpServer = udpServer;
 		this.adminConsole = adminConsole;
-		phoneComm.setGameEventsListener(this);
+		udpServer.setGameEventsListener(this);
 		adminConsole.setGameEventsListener(this);
 	}
 
 	@Override
-	public void onMessageFromClient(Messaging.MessageFromClient message) {
-		var player = actorRegistry.getPlayerById(message.getActorId());
+	public void onMessageFromPlayer(Player player, Messaging.MessageFromClient message) {
 		player.setHealth(message.getHealth());
-		player.setScore(message.getScore());
-
-		if (message.getType() == Messaging.GOT_HIT || message.getType() == Messaging.YOU_KILLED) {
-			var hitByPlayer = actorRegistry.getPlayerById(message.getExtraValue());
-			if (message.getType() == Messaging.YOU_KILLED) {
-				hitByPlayer.setScore(hitByPlayer.getScore() + 1);//may not need because of the score update from the phone
-				phoneComm.sendEventToPhone(Messaging.YOU_SCORED, hitByPlayer, player.getId());
-				var score = teamPlay ? actorRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
-				if (score >= fragLimit) {
-					eventConsoleEndGame();
+		switch (message.getType()) {
+			case Messaging.GOT_HIT | Messaging.YOU_KILLED -> {
+				var hitByPlayer = actorRegistry.getPlayerById(message.getExtraValue());
+				if (message.getType() == Messaging.YOU_KILLED) {
+					hitByPlayer.setScore(hitByPlayer.getScore() + 1);
+					udpServer.sendEventToClient(Messaging.YOU_SCORED, hitByPlayer, player.getId());
+					player.setAssignedRespawnPoint(actorRegistry.getRandomRespawnPointId());
+					var vitalScore = teamPlay ? actorRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
+					if (vitalScore >= fragLimit) {
+						eventConsoleEndGame();
+					}
+				} else {
+					udpServer.sendEventToClient(Messaging.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
 				}
-			} else {
-				phoneComm.sendEventToPhone(Messaging.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
+				sendPlayerValuesSnapshotToAll(false);
 			}
-			sendPlayerValuesSnapshotToAll(false);
+			case Messaging.GOT_HEALTH | Messaging.GOT_AMMO -> {
+				var type = message.getType() == Messaging.GOT_HEALTH ? Actor.Type.HEALTH_DISPENSER : Actor.Type.AMMO_DISPENSER;
+				Actor actor = actorRegistry.getActorByTypeAndId(type, message.getExtraValue());
+				udpServer.sendEventToClient(Messaging.DISPENSER_USED, actor, 0);
+			}
 		}
-		//todo: handle dispensers
 		adminConsole.refreshTable();
 	}
 
@@ -84,7 +88,7 @@ public class Game implements GameEventsListener {
 		sendPlayerValuesSnapshotToAll(true);
 		var startGameMessage = Messaging.eventStartGameToBytes(teamPlay, timeLimitMinutes);
 		actorRegistry.streamPlayers().forEach(player -> {
-			phoneComm.sendBytesToClient(player, startGameMessage);
+			udpServer.sendBytesToClient(player.getClientIp(), startGameMessage);
 		});
 
 		adminConsole.refreshTable();
@@ -106,7 +110,7 @@ public class Game implements GameEventsListener {
 		int leadTeam = actorRegistry.getLeadTeam();
 		int winner = teamPlay ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(-1);
 		for (Player player : actorRegistry.getPlayers()) {
-			phoneComm.sendEventToPhone(Messaging.GAME_OVER, player, winner);
+			udpServer.sendEventToClient(Messaging.GAME_OVER, player, winner);
 		}
 		sendPlayerValuesSnapshotToAll(false);
 	}
@@ -146,7 +150,7 @@ public class Game implements GameEventsListener {
 	}
 
 	private void sendPlayerValuesSnapshotToAll(boolean includeNames) {
-		phoneComm.sendStatsToAll(includeNames, gameState == STATE_PLAYING, teamPlay, timeLeftSeconds);
+		udpServer.sendStatsToAll(includeNames, gameState == STATE_PLAYING, teamPlay, timeLeftSeconds);
 	}
 
 }
