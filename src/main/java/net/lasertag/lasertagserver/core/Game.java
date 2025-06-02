@@ -2,6 +2,7 @@ package net.lasertag.lasertagserver.core;
 
 import lombok.Getter;
 import net.lasertag.lasertagserver.model.Actor;
+import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 import net.lasertag.lasertagserver.ui.AdminConsole;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Stream;
 
 @Component
 @Getter
@@ -126,6 +128,11 @@ public class Game implements GameEventsListener {
 		sendPlayerValuesSnapshotToAll(isNameUpdated);
 	}
 
+	@Override
+	public void onDispenserSettingsUpdated() {
+		udpServer.sendSettingsToAllDispensers();
+	}
+
 	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
 	public void updateGameTime() {
 		timeLeftSeconds--;
@@ -152,5 +159,6 @@ public class Game implements GameEventsListener {
 	private void sendPlayerValuesSnapshotToAll(boolean includeNames) {
 		udpServer.sendStatsToAll(includeNames, gameState == STATE_PLAYING, teamPlay, timeLeftSeconds);
 	}
+
 
 }

@@ -3,6 +3,7 @@ package net.lasertag.lasertagserver.core;
 import jakarta.annotation.PostConstruct;
 import lombok.Setter;
 import net.lasertag.lasertagserver.model.Actor;
+import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Messaging;
 import static net.lasertag.lasertagserver.model.Messaging.*;
 import net.lasertag.lasertagserver.model.Player;
@@ -17,6 +18,7 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Component
 public class UdpServer {
@@ -148,6 +150,14 @@ public class UdpServer {
 	public void sendStatsToAll(boolean includeNames, boolean isGameRunning, boolean teamPlay, int timeSeconds) {
 		var bytes = Messaging.playerStatsToBytes(includeNames, actorRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
 		actorRegistry.getPlayers().forEach(player -> sendBytesToClient(player.getClientIp(), bytes));
+	}
+
+	public void sendSettingsToAllDispensers() {
+		Stream.concat(actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER), actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)).forEach(actor -> {
+			var dispenser = (Dispenser) actor;
+			sendEventToClient(Messaging.DISPENSER_SET_AMOUNT, dispenser, dispenser.getAmount());
+			sendEventToClient(Messaging.DISPENSER_SET_TIMEOUT, dispenser, dispenser.getDispenseTimeoutSec());
+		});
 	}
 
 }

@@ -1,18 +1,16 @@
 package net.lasertag.lasertagserver.ui;
 
 import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
-import java.util.Arrays;
-import java.util.Set;
 
 import lombok.Getter;
 import lombok.Setter;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.ActorRegistry;
+import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
+import net.lasertag.lasertagserver.model.RespawnPoint;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -32,10 +30,17 @@ public class AdminConsole {
 	private GameEventsListener gameEventsListener;
 
 	private PlayerTableModel playerTableModel;
+	private DispenserTableModel healthDispenserModel;
+	private DispenserTableModel ammoDispenserModel;
 	private JPanel scoresContainer;
+	private JPanel respawnPointsContainer;
 
 	private static final Color[] TEAM_COLORS = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN};
-	private static final String[] TEAM_COLORS_NAMES = {"Red", "Blue", "Green", "Yellow", "Magenta", "Cyan"};
+	private static final Color[] TEAM_COLORS_TEXT = {Color.WHITE, Color.WHITE, Color.BLACK, Color.BLACK, Color.WHITE, Color.BLACK};
+	public static final String[] TEAM_COLORS_NAMES = {"Red", "Blue", "Green", "Yellow", "Magenta", "Cyan"};
+
+	public static final Color ONLINE_COLOR = new Color(200, 255, 255);
+	public static final Color OFFLINE_COLOR = new Color(200, 150, 100);
 
 	public AdminConsole(ActorRegistry actorRegistry) {
 		this.actorRegistry = actorRegistry;
@@ -43,59 +48,36 @@ public class AdminConsole {
 	}
 
 	private void initUI() {
-		JFrame frame = new JFrame("Admin Console for Laser Tag Game Server.");
+		JFrame frame = new JFrame("Laser Tag Game Server.");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(2000, 700);
+		frame.setSize(2000, 1000);
 		frame.setLayout(new BorderLayout());
 
 		// Table Model and JTable
-		playerTableModel = new PlayerTableModel();
+		playerTableModel = new PlayerTableModel(actorRegistry);
+		playerTableModel.addTableModelListener(event -> {
+			int rowIndex = event.getFirstRow();
+			int columnIndex = event.getColumn();
+			Player player = actorRegistry.getPlayers().get(rowIndex);
+			gameEventsListener.onPlayerDataUpdated(player, columnIndex == 1);
+			SwingUtilities.invokeLater(AdminConsole.this::refreshTeamScores);
+		});
 		JTable playerTable = new JTable(playerTableModel);
-		playerTable.setBorder(BorderFactory.createRaisedSoftBevelBorder());
-		playerTable.setRowHeight(playerTable.getRowHeight() + 30);
-		playerTable.setRowMargin(20);
-		playerTable.setIntercellSpacing(new Dimension(15, 15));
-		playerTable.setRowSelectionAllowed(false);
-		JComboBox<String> teamColorComboBox = new JComboBox<>();
-		for (int i = 0; i < TEAM_COLORS_NAMES.length; i++) {
-			teamColorComboBox.addItem(TEAM_COLORS_NAMES[i]);
-		}
-		playerTable.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(teamColorComboBox));
-
-		// Set custom renderer for all cells to change row background based on online status
-		playerTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-			@Override
-			public java.awt.Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-				java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-				if (row < actorRegistry.getPlayers().size()) {
-					Player player = actorRegistry.getPlayers().get(row);
-					if (player != null) {
-						if (player.isOnline()) {
-							c.setForeground(new Color(200, 255, 255)); // Light green for online
-						} else {
-							c.setForeground(new Color(200, 150, 100)); // Light red for offline
-						}
-					} else {
-						c.setBackground(table.getBackground());
-					}
-				}
-				return c;
-			}
-		});
-
-		Arrays.asList(0, 2, 3, 4, 5, 7).forEach(index -> {
-			playerTable.getColumnModel().getColumn(index).setPreferredWidth(30);
-		});
-		playerTable.getColumnModel().getColumn(1).setPreferredWidth(250); // Name
-		playerTable.getColumnModel().getColumn(6).setPreferredWidth(100); // Team
-
+		PlayerTableModel.initTable(playerTable, actorRegistry);
 
 		JScrollPane tableScrollPane = new JScrollPane(playerTable);
-		frame.add(tableScrollPane, BorderLayout.CENTER);
+
+		JPanel dispensersContainer = new JPanel(new GridLayout(1, 2));
+		healthDispenserModel = initDispenserTable(Actor.Type.HEALTH_DISPENSER, "Health Dispensers", dispensersContainer);
+		ammoDispenserModel = initDispenserTable(Actor.Type.AMMO_DISPENSER, "Ammo Dispensers", dispensersContainer);
+
+		JPanel mainPanel = new JPanel(new GridLayout(2, 1));
+		mainPanel.add(tableScrollPane, BorderLayout.CENTER);
+		mainPanel.add(dispensersContainer, BorderLayout.SOUTH);
+
+		frame.add(mainPanel, BorderLayout.CENTER);
 
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
-
-		// Bottom Panel with Buttons and Timer
 		JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
 
 		indicatorStatus = addIndicator("Status:", 10, topPanel);
@@ -117,10 +99,38 @@ public class AdminConsole {
 		scoresContainer = new JPanel();
 		bottomPanel.add(scoresContainer);
 
+		// Create respawn points container with horizontal layout
+		JPanel respawnPointsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+		respawnPointsPanel.setBorder(BorderFactory.createTitledBorder("Respawn Points"));
+		respawnPointsContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
+		respawnPointsPanel.add(respawnPointsContainer);
+		topPanel.add(respawnPointsPanel);
+		refreshRespawnPoints();
+
 		frame.add(topPanel, BorderLayout.NORTH);
 		frame.add(bottomPanel, BorderLayout.SOUTH);
 
 		frame.setVisible(true);
+	}
+
+	private DispenserTableModel initDispenserTable(Actor.Type type, String title, JPanel container) {
+		DispenserTableModel model = new DispenserTableModel(actorRegistry, type);
+		model.addTableModelListener(event -> {
+			gameEventsListener.onDispenserSettingsUpdated();
+		});
+
+		JTable table = new JTable(model);
+		table.setDefaultRenderer(Object.class, new TableCellRenderer(actorRegistry, type));
+		table.setRowHeight(table.getRowHeight() + 30);
+		table.setRowMargin(20);
+		table.setIntercellSpacing(new Dimension(15, 15));
+		table.setRowSelectionAllowed(false);
+		//table.setFont(new Font("Monospaced", Font.PLAIN, 30));
+
+		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane.setBorder(BorderFactory.createTitledBorder(title));
+		container.add(scrollPane);
+		return model;
 	}
 
 	private JButton makeButton(String text, Runnable action) {
@@ -147,93 +157,44 @@ public class AdminConsole {
 			return;
 		}
 		actorRegistry.getTeamScores().forEach((teamId, score) -> {
-			JLabel label = new JLabel(" "+score+" ");
-			label.setFont(new Font("Arial", Font.BOLD, 35));
-			var color = TEAM_COLORS[(teamId - Messaging.TEAM_RED)];
-			label.setForeground(color);
+			JLabel label = new JLabel(" " + score + " ");
+			label.setFont(new Font("Monospaced", Font.BOLD, 30));
+			var colorId = teamId - Messaging.TEAM_RED;
+			label.setBackground(TEAM_COLORS[colorId]);
+			label.setForeground(TEAM_COLORS_TEXT[colorId]);
+			label.setOpaque(true);
 			scoresContainer.add(label);
 		});
 
 		scoresContainer.revalidate();
 		scoresContainer.repaint();
+	}
 
+	private void refreshRespawnPoints() {
+		respawnPointsContainer.removeAll();
+
+		actorRegistry.streamByType(Actor.Type.RESPAWN_POINT).forEach(actor -> {
+			RespawnPoint respawnPoint = (RespawnPoint) actor;
+			JLabel label = new JLabel(" " + respawnPoint.getId() + " ");
+			label.setFont(new Font("Arial", Font.BOLD, 30));
+			label.setOpaque(true);
+			label.setBackground(respawnPoint.isOnline() ? ONLINE_COLOR : OFFLINE_COLOR);
+			label.setForeground(respawnPoint.isOnline() ?Color.BLACK : Color.GRAY);
+			respawnPointsContainer.add(label);
+		});
+
+		respawnPointsContainer.revalidate();
+		respawnPointsContainer.repaint();
 	}
 
 	public void refreshTable() {
 		SwingUtilities.invokeLater(() -> {
 			playerTableModel.fireTableDataChanged();
 			refreshTeamScores();
+			refreshRespawnPoints();
+			healthDispenserModel.fireTableDataChanged();
+			ammoDispenserModel.fireTableDataChanged();
 		});
-	}
-
-	private class PlayerTableModel extends AbstractTableModel {
-		private final String[] columnNames = {"ID", "Name", "Score", "Health", "MaxBullets", "Damage", "Team", "R-point"};
-		private final Set<Integer> editableColumns = Set.of(1, 4, 5, 6);
-		@Override
-		public int getRowCount() {
-			return actorRegistry.getPlayers().size();
-		}
-
-		@Override
-		public int getColumnCount() {
-			return columnNames.length;
-		}
-
-		@Override
-		public String getColumnName(int column) {
-			return columnNames[column];
-		}
-
-		@Override
-		public Object getValueAt(int rowIndex, int columnIndex) {
-			Player player = actorRegistry.getPlayers().get(rowIndex);
-			return switch (columnIndex) {
-				case 0 -> player.getId();
-				case 1 -> player.getName();
-				case 2 -> player.getScore();
-				case 3 -> player.getHealth();
-				case 4 -> player.getBulletsMax();
-				case 5 -> player.getDamage();
-				case 6 -> TEAM_COLORS_NAMES[player.getTeamId()];
-				case 7 -> player.getAssignedRespawnPoint() == -1 ? "" : player.getAssignedRespawnPoint();
-				default -> null;
-			};
-		}
-
-		@Override
-		public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-			Player player = actorRegistry.getPlayers().get(rowIndex);
-			switch (columnIndex) {
-				case 1 -> player.setName((String) aValue);
-				case 4 -> player.setBulletsMax((Integer) aValue);
-				case 5 -> player.setDamage((Integer) aValue);
-				case 6 -> {
-					for (int i = 0; i < TEAM_COLORS_NAMES.length; i++) {
-						if (TEAM_COLORS_NAMES[i].equals(aValue)) {
-							player.setTeamId(i);
-						}
-					}
-				}
-			}
-			gameEventsListener.onPlayerDataUpdated(player, columnIndex == 1);
-			fireTableCellUpdated(rowIndex, columnIndex);
-			SwingUtilities.invokeLater(AdminConsole.this::refreshTeamScores);
-		}
-
-		@Override
-		public boolean isCellEditable(int rowIndex, int columnIndex) {
-			return editableColumns.contains(columnIndex);
-		}
-
-		@Override
-		public Class<?> getColumnClass(int columnIndex) {
-			if (columnIndex == 1) {
-				return String.class;
-			} else {
-				return Integer.class;
-			}
-		}
-
 	}
 
 
