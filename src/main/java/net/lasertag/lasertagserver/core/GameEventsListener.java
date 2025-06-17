@@ -12,6 +12,8 @@ public interface GameEventsListener {
 
 	void refreshConsoleTable();
 
+	void onPlayerJoinedOrLeft();
+
 	void onPlayerDataUpdated(Player player, boolean isNameUpdated);
 
 	void onDispenserSettingsUpdated();

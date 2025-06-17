@@ -3,16 +3,9 @@ package net.lasertag.lasertagserver.model;
 import java.util.HashMap;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import static  net.lasertag.lasertagserver.model.MessageType.Direction.*;
 
-public record MessageType(byte id, String name, int directionFlag) {
-
-	public static final int CLIENT_TO_SERVER = 0;
-	public static final int SERVER_TO_CLIENT = 1;
-
-	public int getId() {
-		return id;
-	}
-
+public record MessageType(byte id, String name, Direction directionFlag) {
 	public static final MessageType PING = new MessageType((byte) 1, "PING", SERVER_TO_CLIENT);
 	public static final MessageType PLAYER_PING = new MessageType((byte) 41, "PLAYER_PING", CLIENT_TO_SERVER);
 	public static final MessageType HEALTH_DISPENSER_PING = new MessageType((byte) 45, "HEALTH_DISPENSER_PING", CLIENT_TO_SERVER);
@@ -35,8 +28,8 @@ public record MessageType(byte id, String name, int directionFlag) {
 	public static final MessageType GOT_AMMO = new MessageType((byte) 17, "GOT_AMMO", CLIENT_TO_SERVER);
 	public static final MessageType GOT_FLAG = new MessageType((byte) 18, "GOT_FLAG", CLIENT_TO_SERVER);
 
-	public static final MessageType GIVE_HEALTH_TO_PLAYER = new MessageType((byte) 26, "GIVE_HEALTH_TO_PLAYER", SERVER_TO_CLIENT);
-	public static final MessageType GIVE_AMMO_TO_PLAYER = new MessageType((byte) 27, "GIVE_AMMO_TO_PLAYER", SERVER_TO_CLIENT);
+	public static final MessageType GIVE_HEALTH_TO_PLAYER = new MessageType((byte) 26, "GIVE_HEALTH_TO_PLAYER", BOTH_DIRECTIONS);
+	public static final MessageType GIVE_AMMO_TO_PLAYER = new MessageType((byte) 27, "GIVE_AMMO_TO_PLAYER", BOTH_DIRECTIONS);
 
 
 	public static final MessageType DISPENSER_USED = new MessageType((byte) 51, "DISPENSER_USED", SERVER_TO_CLIENT);
@@ -44,6 +37,20 @@ public record MessageType(byte id, String name, int directionFlag) {
 
 	public static final MessageType GAME_TIMER = new MessageType((byte) 101, "GAME_TIMER", SERVER_TO_CLIENT);
 	public static final MessageType LOST_CONNECTION = new MessageType((byte) 102, "LOST_CONNECTION", SERVER_TO_CLIENT);
+
+	public enum Direction {
+		CLIENT_TO_SERVER,
+		SERVER_TO_CLIENT,
+		BOTH_DIRECTIONS
+	}
+
+	public boolean isClientToServer() {
+		return directionFlag == CLIENT_TO_SERVER || directionFlag == BOTH_DIRECTIONS;
+	}
+
+	public boolean isServerToClient() {
+		return directionFlag == SERVER_TO_CLIENT || directionFlag == BOTH_DIRECTIONS;
+	}
 
 	static HashMap<Integer, MessageType> populateMessageTypeByIdMap() {
 		HashMap<Integer, MessageType> messageTypeMap = new HashMap<>();

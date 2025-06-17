@@ -38,4 +38,12 @@ public class Player extends Actor {
 		this.flagCarrier = false;
 	}
 
+	public boolean updateHealth(int health) {
+		if (this.health == health) {
+			return false; // no change
+		}
+		this.health = health;
+		return true;
+	}
+
 }

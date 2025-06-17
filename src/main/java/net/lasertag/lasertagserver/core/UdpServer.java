@@ -6,6 +6,8 @@ import net.lasertag.lasertagserver.model.*;
 
 import static net.lasertag.lasertagserver.model.Messaging.*;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -14,21 +16,20 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Component
 public class UdpServer {
+	private static final Logger log = LoggerFactory.getLogger(UdpServer.class);
 
 	@Setter
 	private GameEventsListener gameEventsListener;
 
 	private final ActorRegistry actorRegistry;
-	private final List<Long> lastPingTime;
+	private final Map<Actor, Long> lastPingTime;
 
-	private final long pingTimeout = 5000;
+	private final long pingTimeout = 10000;
 
 	private volatile boolean running = true;
 	private final int port;
@@ -41,11 +42,7 @@ public class UdpServer {
 		this.devicePort = 1234;
 		this.actorRegistry = actorRegistry;
 		this.daemonExecutor = daemonExecutor;
-
-		this.lastPingTime = new ArrayList<>(actorRegistry.getPlayers().size());
-		for (int i = 0; i < actorRegistry.getPlayers().size() + 1; i++) {
-			lastPingTime.add(0L);
-		}
+		this.lastPingTime = new HashMap<>();
 	}
 
 	@PostConstruct
@@ -57,8 +54,7 @@ public class UdpServer {
 	private void startUdpServer() {
 		try (DatagramSocket serverSocket = new DatagramSocket(port)) {
 			serverSocket.setSoTimeout(1000);
-			System.out.printf("%s started on port: %d thread: %s\n",
-				this.getClass().getSimpleName(), port, Thread.currentThread().getName());
+			log.info("Game Server started on port: {} thread: {}", port, Thread.currentThread().getName());
 			byte[] receiveBuffer = new byte[64];
 			while (running) {
 				DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
@@ -67,7 +63,7 @@ public class UdpServer {
 					processPacketFromClient(receivePacket);
 				} catch (SocketTimeoutException ignored) {}
 			}
-			System.out.println(this.getClass().getSimpleName() + ": UDP Server stopped");
+			log.info("Game Server stopped");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -79,7 +75,7 @@ public class UdpServer {
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ip, devicePort);
 			clientSocket.send(sendPacket);
 		} catch (Exception e) {
-			System.out.println("Error sending command to client: " + e.getMessage());
+			log.error("Error sending command to client: {}", e.getMessage(), e);
 		}
 	}
 
@@ -90,17 +86,16 @@ public class UdpServer {
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
 			DatagramPacket sendPacket = new DatagramPacket(bytes, bytes.length, ip, devicePort);
 			clientSocket.send(sendPacket);
-			System.out.printf("Bytes to %s:%d len=%d, data: %s\n",
-				sendPacket.getAddress(), sendPacket.getPort(), sendPacket.getLength(), Arrays.toString(sendPacket.getData()));
+			log.debug("Bytes to {}:{} len={}, data: {}", sendPacket.getAddress(), sendPacket.getPort(), sendPacket.getLength(), Arrays.toString(sendPacket.getData()));
 		} catch (Exception e) {
-			System.out.println("Error sending command to client: " + e.getMessage());
+			log.error("Error sending command to client: {}", e.getMessage(), e);
 		}
 	}
 
 	public void stopUdpServer() {
 		running = false;
 		daemonExecutor.shutdown();
-		System.out.println(this.getClass().getSimpleName() + ": Stopping UDP Server...");
+		log.info("{}: Stopping UDP Server...", this.getClass().getSimpleName());
 	}
 
 	private void processPacketFromClient(DatagramPacket packet) {
@@ -109,32 +104,39 @@ public class UdpServer {
 			var actor = actorRegistry.getActorByMessage(message);
 			if (actor.getClientIp() == null || message.isFirstEverMessage()) {
 				actor.setClientIp(packet.getAddress());
-				System.out.printf("%s %d connected\n", actor.getType().name(), actor.getId());
+				log.info("Connected {} ip = {} ", actor, actor.getClientIp());
 				gameEventsListener.refreshConsoleTable();
+				if (actor.getType() == Actor.Type.PLAYER) {
+					gameEventsListener.onPlayerJoinedOrLeft();
+				}
 			}
-			lastPingTime.set(message.getActorId(), System.currentTimeMillis());
+			lastPingTime.put(actor, System.currentTimeMillis());
+
 			if (PING_GROUP.contains(message.getTypeId())) {
 				sendAckToClient(actor.getClientIp());
 			} else {
-				System.out.printf("Event %s from %s len=%d, data: %s\n", message.getType().name(), actor,	packet.getLength(), message);
+				log.info("Event {} from {} len={}, data: {}", message.getType().name(), actor, packet.getLength(), message);
 				gameEventsListener.onMessageFromPlayer((Player)actor, message);
 			}
 		} catch (Exception e) {
-			System.out.println("Error parsing message: " + e.getMessage());
+			log.error("Error parsing message: {}", e.getMessage(), e);
 		}
 	}
 
 	@Scheduled(fixedDelay = 1000)
 	private void checkConnectedClients() {
 		var currentTime = System.currentTimeMillis();
-		actorRegistry.getPlayers().forEach(player -> {
-			var lastPing = lastPingTime.get(player.getId());
+		actorRegistry.getActors().forEach(actor -> {
+			var lastPing = lastPingTime.getOrDefault(actor, 0L);
 			if (currentTime - lastPing > pingTimeout) {
-				if (player.getClientIp() != null) {
-					System.out.printf("%s lost connection to player %d\n", this.getClass().getSimpleName(), player.getId());
-					player.setClientIp(null);
+				if (actor.getClientIp() != null) {
+					log.warn("Lost connection to {}", actor);
+					actor.setClientIp(null);
 					if (gameEventsListener != null) {
 						gameEventsListener.refreshConsoleTable();
+						if (actor.getType() == Actor.Type.PLAYER) {
+							gameEventsListener.onPlayerJoinedOrLeft();
+						}
 					}
 				}
 			}
@@ -142,14 +144,18 @@ public class UdpServer {
 	}
 
 	public void sendEventToClient(MessageType type, Actor actor, byte... values) {
-		System.out.printf("Event to %s: type=%s, data: %s\n", actor.toString(), type.name(), Arrays.toString(values));
+		log.info("Event to {}: type={}, data: {}", actor.toString(), type.name(), Arrays.toString(values));
 		var bytes = Messaging.eventToBytes(type.id(), values);
 		sendBytesToClient(actor.getClientIp(), bytes);
 	}
 
 	public void sendStatsToAll(boolean includeNames, boolean isGameRunning, boolean teamPlay, int timeSeconds) {
-		var bytes = Messaging.playerStatsToBytes(includeNames, actorRegistry.getPlayersSortedByScore(), isGameRunning, teamPlay, timeSeconds);
-		actorRegistry.getPlayers().forEach(player -> sendBytesToClient(player.getClientIp(), bytes));
+		var players = actorRegistry.getPlayersSortedByScore();
+		var onlinePlayers = players.stream().filter(Player::isOnline).toList();
+		log.info("Stats to players: {}, withNames={}, isGameRunning={}, teamPlay={}, timeSeconds={}",
+			Arrays.toString(onlinePlayers.stream().map(p -> p.getId()).toArray()), includeNames, isGameRunning, teamPlay, timeSeconds);
+		var bytes = Messaging.playerStatsToBytes(includeNames, players, isGameRunning, teamPlay, timeSeconds);
+		onlinePlayers.forEach(player -> sendBytesToClient(player.getClientIp(), bytes));
 	}
 
 	public void sendSettingsToAllDispensers() {

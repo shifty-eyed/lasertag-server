@@ -29,9 +29,12 @@ public class AdminConsole {
 	private GameEventsListener gameEventsListener;
 
 	private PlayerTableModel playerTableModel;
+
 	private DispenserTableModel healthDispenserModel;
+
 	private DispenserTableModel ammoDispenserModel;
 	private JPanel scoresContainer;
+	private JPanel mainPanel;
 
 	private static final Color[] TEAM_COLORS = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN};
 	private static final Color[] TEAM_COLORS_TEXT = {Color.WHITE, Color.WHITE, Color.BLACK, Color.BLACK, Color.WHITE, Color.BLACK};
@@ -69,7 +72,7 @@ public class AdminConsole {
 		healthDispenserModel = initDispenserTable(Actor.Type.HEALTH_DISPENSER, "Health Dispensers", dispensersContainer);
 		ammoDispenserModel = initDispenserTable(Actor.Type.AMMO_DISPENSER, "Ammo Dispensers", dispensersContainer);
 
-		JPanel mainPanel = new JPanel(new GridLayout(2, 1));
+		mainPanel = new JPanel(new GridLayout(2, 1));
 		mainPanel.add(tableScrollPane, BorderLayout.CENTER);
 		mainPanel.add(dispensersContainer, BorderLayout.SOUTH);
 
@@ -162,10 +165,9 @@ public class AdminConsole {
 
 	public void refreshTable() {
 		SwingUtilities.invokeLater(() -> {
-			playerTableModel.fireTableDataChanged();
+			mainPanel.revalidate();
+			mainPanel.repaint();
 			refreshTeamScores();
-			//healthDispenserModel.fireTableDataChanged();
-			//ammoDispenserModel.fireTableDataChanged();
 		});
 	}
 

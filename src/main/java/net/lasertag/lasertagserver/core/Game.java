@@ -41,7 +41,9 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void onMessageFromPlayer(Player player, Messaging.MessageFromClient message) {
-		player.setHealth(message.getHealth());
+		if (player.updateHealth(message.getHealth())) {
+			sendPlayerValuesSnapshotToAll(false);
+		}
 		var type = message.getTypeId();
 		if (type == MessageType.GOT_HIT.id() || type == MessageType.YOU_KILLED.id())  {
 			var hitByPlayer = actorRegistry.getPlayerById(message.getExtraValue());
@@ -69,7 +71,8 @@ public class Game implements GameEventsListener {
 	private void useDispenser(Player player, Actor.Type dispenserType, int dispenserId, MessageType messageToPlayerType) {
 		var dispenser = (Dispenser) actorRegistry.getActorByTypeAndId(dispenserType, dispenserId);
 		udpServer.sendEventToClient(MessageType.DISPENSER_USED, dispenser);
-		udpServer.sendEventToClient(messageToPlayerType, player, (byte)dispenser.getAmount());
+		var amount = Math.min(dispenser.getAmount(), player.getMaxHealth() - player.getHealth());
+		udpServer.sendEventToClient(messageToPlayerType, player, (byte)amount);
 	}
 
 	@Override
@@ -90,7 +93,9 @@ public class Game implements GameEventsListener {
 		setGameState(STATE_PLAYING);
 		sendPlayerValuesSnapshotToAll(true);
 		actorRegistry.streamPlayers().forEach(player -> {
-			udpServer.sendEventToClient(MessageType.GAME_START, player, (byte)(teamPlay ? 1 : 0), (byte) timeLimitMinutes);
+			if (player.isOnline()) {
+				udpServer.sendEventToClient(MessageType.GAME_START, player, (byte) (teamPlay ? 1 : 0), (byte) timeLimitMinutes);
+			}
 		});
 
 		adminConsole.refreshTable();
@@ -120,6 +125,10 @@ public class Game implements GameEventsListener {
 	@Override
 	public void refreshConsoleTable() {
 		adminConsole.refreshTable();
+	}
+
+	@Override
+	public void onPlayerJoinedOrLeft() {
 		sendPlayerValuesSnapshotToAll(true);
 	}
 
