@@ -10,6 +10,7 @@ import java.util.Set;
 
 public abstract class Messaging {
 
+	//TODO make all messages as enums with descriptive names for loggigng and direction (server-client, client-server)
 	public static final byte PING = 1;
 	public static final byte YOU_HIT_SOMEONE = 4;
 	public static final byte GOT_HIT = 5;
@@ -26,15 +27,16 @@ public abstract class Messaging {
 	public static final byte GOT_AMMO = 17;
 	public static final byte GOT_FLAG = 18;
 
+	public static final byte GIVE_HEALTH_TO_PLAYER = 26;
+	public static final byte GIVE_AMMO_TO_PLAYER = 27;
+
 	public static final byte PLAYER_PING = 41;
 	public static final byte RESPAWN_POINT_PING = 44;
 	public static final byte HEALTH_DISPENSER_PING = 45;
 	public static final byte AMMO_DISPENSER_PING = 46;
 
 
-	//todo implement sending of these events
 	public static final byte DISPENSER_USED = 51;
-	public static final byte DISPENSER_SET_AMOUNT = 52;
 	public static final byte DISPENSER_SET_TIMEOUT = 53;
 
 	public static final byte GAME_TIMER = 101;
@@ -59,8 +61,8 @@ public abstract class Messaging {
 		private final boolean firstEverMessage;
 
 		public MessageFromClient(byte[] bytes, int length) {
-			if (length < 3) {
-				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
+			if (length < 2) {
+				throw new IllegalArgumentException("Invalid message, too short: " + Arrays.toString(Arrays.copyOfRange(bytes, 0, length)));
 			}
 			this.type = bytes[0];
 			this.actorId = bytes[1];
@@ -68,12 +70,12 @@ public abstract class Messaging {
 				this.firstEverMessage = bytes[2] != 0;
 				this.extraValue = 0;
 				this.health = 0;
-			} else if (length == 6) {
+			} else if (length == 4) {
 				this.extraValue = bytes[2];
 				this.health = bytes[3];
 				this.firstEverMessage = false;
 			} else {
-				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(bytes));
+				throw new IllegalArgumentException("Invalid message: " + Arrays.toString(Arrays.copyOfRange(bytes, 0, length)));
 			}
 		}
 

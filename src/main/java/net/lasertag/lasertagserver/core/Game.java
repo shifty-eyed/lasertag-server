@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.stream.Stream;
 
 @Component
 @Getter
@@ -62,17 +61,23 @@ public class Game implements GameEventsListener {
 				}
 				sendPlayerValuesSnapshotToAll(false);
 			}
-			case Messaging.GOT_HEALTH | Messaging.GOT_AMMO -> {
-				var type = message.getType() == Messaging.GOT_HEALTH ? Actor.Type.HEALTH_DISPENSER : Actor.Type.AMMO_DISPENSER;
-				Actor actor = actorRegistry.getActorByTypeAndId(type, message.getExtraValue());
-				udpServer.sendEventToClient(Messaging.DISPENSER_USED, actor, 0);
-			}
+			case Messaging.GOT_HEALTH ->
+				useDispenser(player, Actor.Type.HEALTH_DISPENSER, message.getExtraValue(), Messaging.GIVE_HEALTH_TO_PLAYER);
+			case Messaging.GOT_AMMO ->
+				useDispenser(player, Actor.Type.AMMO_DISPENSER, message.getExtraValue(), Messaging.GIVE_AMMO_TO_PLAYER);
+
 		}
 		adminConsole.refreshTable();
 	}
 
+	private void useDispenser(Player player, Actor.Type dispenserType, int dispenserId, byte messageToPlayerType) {
+		var dispenser = (Dispenser) actorRegistry.getActorByTypeAndId(dispenserType, dispenserId);
+		udpServer.sendEventToClient(Messaging.DISPENSER_USED, dispenser, 0);
+		udpServer.sendEventToClient(messageToPlayerType, player, dispenser.getAmount());
+	}
+
 	@Override
-	public void eventConsoleScheduleStartGame() {
+	public void eventConsoleStartGame() {
 		timeLimitMinutes = Integer.parseInt(adminConsole.getIndicatorGameTime().getText());
 		fragLimit = Integer.parseInt(adminConsole.getIndicatorFragLimit().getText());
 		teamPlay = adminConsole.getGameTypeTeam().isSelected() && actorRegistry.getTeamScores().size() > 1;
@@ -81,8 +86,9 @@ public class Game implements GameEventsListener {
 		var respawnPointsIt = actorRegistry.shuffledRespawnPointIds().iterator();
 		actorRegistry.streamPlayers().forEach(player -> {
 			player.setScore(0);
-			player.setHealth(MAX_HEALTH);
-			player.setAssignedRespawnPoint(respawnPointsIt.next());
+			player.setHealth(0);
+			//player.setAssignedRespawnPoint(respawnPointsIt.next());
+			player.setAssignedRespawnPoint(0);
 		});
 
 		setGameState(STATE_PLAYING);

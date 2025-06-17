@@ -23,8 +23,11 @@ public class Player extends Actor {
 	@Setter
 	private boolean flagCarrier;
 
+	private int maxHealth;
+
 	public Player(int id,  String name, int maxHealth) {
 		super(id, Type.PLAYER);
+		this.maxHealth = maxHealth;
 		this.name = name;
 		this.health = maxHealth;
 		this.score = 0;
@@ -34,6 +37,5 @@ public class Player extends Actor {
 		this.assignedRespawnPoint = -1;
 		this.flagCarrier = false;
 	}
-
 
 }

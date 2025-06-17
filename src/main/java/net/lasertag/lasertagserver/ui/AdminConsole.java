@@ -10,7 +10,6 @@ import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
-import net.lasertag.lasertagserver.model.RespawnPoint;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -33,7 +32,6 @@ public class AdminConsole {
 	private DispenserTableModel healthDispenserModel;
 	private DispenserTableModel ammoDispenserModel;
 	private JPanel scoresContainer;
-	private JPanel respawnPointsContainer;
 
 	private static final Color[] TEAM_COLORS = {Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN};
 	private static final Color[] TEAM_COLORS_TEXT = {Color.WHITE, Color.WHITE, Color.BLACK, Color.BLACK, Color.WHITE, Color.BLACK};
@@ -89,7 +87,7 @@ public class AdminConsole {
 		indicatorFragLimit = addIndicator("Frag Limit:", 3, topPanel);
 		indicatorFragLimit.setText("10");
 
-		bottomPanel.add(makeButton("Start Game", () -> gameEventsListener.eventConsoleScheduleStartGame()));
+		bottomPanel.add(makeButton("Start Game", () -> gameEventsListener.eventConsoleStartGame()));
 		bottomPanel.add(makeButton("End Game", () -> gameEventsListener.eventConsoleEndGame()));
 
 		gameTypeTeam = new JCheckBox("Team Play");
@@ -98,14 +96,6 @@ public class AdminConsole {
 
 		scoresContainer = new JPanel();
 		bottomPanel.add(scoresContainer);
-
-		// Create respawn points container with horizontal layout
-		JPanel respawnPointsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
-		respawnPointsPanel.setBorder(BorderFactory.createTitledBorder("Respawn Points"));
-		respawnPointsContainer = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
-		respawnPointsPanel.add(respawnPointsContainer);
-		topPanel.add(respawnPointsPanel);
-		refreshRespawnPoints();
 
 		frame.add(topPanel, BorderLayout.NORTH);
 		frame.add(bottomPanel, BorderLayout.SOUTH);
@@ -170,30 +160,12 @@ public class AdminConsole {
 		scoresContainer.repaint();
 	}
 
-	private void refreshRespawnPoints() {
-		respawnPointsContainer.removeAll();
-
-		actorRegistry.streamByType(Actor.Type.RESPAWN_POINT).forEach(actor -> {
-			RespawnPoint respawnPoint = (RespawnPoint) actor;
-			JLabel label = new JLabel(" " + respawnPoint.getId() + " ");
-			label.setFont(new Font("Arial", Font.BOLD, 30));
-			label.setOpaque(true);
-			label.setBackground(respawnPoint.isOnline() ? ONLINE_COLOR : OFFLINE_COLOR);
-			label.setForeground(respawnPoint.isOnline() ?Color.BLACK : Color.GRAY);
-			respawnPointsContainer.add(label);
-		});
-
-		respawnPointsContainer.revalidate();
-		respawnPointsContainer.repaint();
-	}
-
 	public void refreshTable() {
 		SwingUtilities.invokeLater(() -> {
 			playerTableModel.fireTableDataChanged();
 			refreshTeamScores();
-			refreshRespawnPoints();
-			healthDispenserModel.fireTableDataChanged();
-			ammoDispenserModel.fireTableDataChanged();
+			//healthDispenserModel.fireTableDataChanged();
+			//ammoDispenserModel.fireTableDataChanged();
 		});
 	}
 

@@ -155,8 +155,7 @@ public class UdpServer {
 	public void sendSettingsToAllDispensers() {
 		Stream.concat(actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER), actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)).forEach(actor -> {
 			var dispenser = (Dispenser) actor;
-			sendEventToClient(Messaging.DISPENSER_SET_AMOUNT, dispenser, dispenser.getAmount());
-			sendEventToClient(Messaging.DISPENSER_SET_TIMEOUT, dispenser, dispenser.getDispenseTimeoutSec());
+			sendEventToClient(Messaging.DISPENSER_SET_TIMEOUT, dispenser, dispenser.getDispenseTimeoutSec() / 10);// to pack as 1 byte
 		});
 	}
 
