@@ -1,10 +1,7 @@
 package net.lasertag.lasertagserver.core;
 
 import lombok.Getter;
-import net.lasertag.lasertagserver.model.Actor;
-import net.lasertag.lasertagserver.model.Dispenser;
-import net.lasertag.lasertagserver.model.Messaging;
-import net.lasertag.lasertagserver.model.Player;
+import net.lasertag.lasertagserver.model.*;
 import net.lasertag.lasertagserver.ui.AdminConsole;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -45,35 +42,34 @@ public class Game implements GameEventsListener {
 	@Override
 	public void onMessageFromPlayer(Player player, Messaging.MessageFromClient message) {
 		player.setHealth(message.getHealth());
-		switch (message.getType()) {
-			case Messaging.GOT_HIT | Messaging.YOU_KILLED -> {
-				var hitByPlayer = actorRegistry.getPlayerById(message.getExtraValue());
-				if (message.getType() == Messaging.YOU_KILLED) {
-					hitByPlayer.setScore(hitByPlayer.getScore() + 1);
-					udpServer.sendEventToClient(Messaging.YOU_SCORED, hitByPlayer, player.getId());
-					player.setAssignedRespawnPoint(actorRegistry.getRandomRespawnPointId());
-					var vitalScore = teamPlay ? actorRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
-					if (vitalScore >= fragLimit) {
-						eventConsoleEndGame();
-					}
-				} else {
-					udpServer.sendEventToClient(Messaging.YOU_HIT_SOMEONE, hitByPlayer, player.getId());
+		var type = message.getTypeId();
+		if (type == MessageType.GOT_HIT.id() || type == MessageType.YOU_KILLED.id())  {
+			var hitByPlayer = actorRegistry.getPlayerById(message.getExtraValue());
+			if (type == MessageType.YOU_KILLED.id()) {
+				hitByPlayer.setScore(hitByPlayer.getScore() + 1);
+				udpServer.sendEventToClient(MessageType.YOU_SCORED, hitByPlayer, (byte)player.getId());
+				player.setAssignedRespawnPoint(actorRegistry.getRandomRespawnPointId());
+				var vitalScore = teamPlay ? actorRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
+				if (vitalScore >= fragLimit) {
+					eventConsoleEndGame();
 				}
-				sendPlayerValuesSnapshotToAll(false);
+			} else {
+				udpServer.sendEventToClient(MessageType.YOU_HIT_SOMEONE, hitByPlayer, (byte)player.getId());
 			}
-			case Messaging.GOT_HEALTH ->
-				useDispenser(player, Actor.Type.HEALTH_DISPENSER, message.getExtraValue(), Messaging.GIVE_HEALTH_TO_PLAYER);
-			case Messaging.GOT_AMMO ->
-				useDispenser(player, Actor.Type.AMMO_DISPENSER, message.getExtraValue(), Messaging.GIVE_AMMO_TO_PLAYER);
-
+			sendPlayerValuesSnapshotToAll(false);
+		} else if (type == MessageType.GOT_HEALTH.id()) {
+			useDispenser(player, Actor.Type.HEALTH_DISPENSER, message.getExtraValue(), MessageType.GIVE_HEALTH_TO_PLAYER);
+		} else if (type == MessageType.GOT_AMMO.id()) {
+			useDispenser(player, Actor.Type.AMMO_DISPENSER, message.getExtraValue(), MessageType.GIVE_AMMO_TO_PLAYER);
 		}
+
 		adminConsole.refreshTable();
 	}
 
-	private void useDispenser(Player player, Actor.Type dispenserType, int dispenserId, byte messageToPlayerType) {
+	private void useDispenser(Player player, Actor.Type dispenserType, int dispenserId, MessageType messageToPlayerType) {
 		var dispenser = (Dispenser) actorRegistry.getActorByTypeAndId(dispenserType, dispenserId);
-		udpServer.sendEventToClient(Messaging.DISPENSER_USED, dispenser, 0);
-		udpServer.sendEventToClient(messageToPlayerType, player, dispenser.getAmount());
+		udpServer.sendEventToClient(MessageType.DISPENSER_USED, dispenser);
+		udpServer.sendEventToClient(messageToPlayerType, player, (byte)dispenser.getAmount());
 	}
 
 	@Override
@@ -92,11 +88,9 @@ public class Game implements GameEventsListener {
 		});
 
 		setGameState(STATE_PLAYING);
-
 		sendPlayerValuesSnapshotToAll(true);
-		var startGameMessage = Messaging.eventStartGameToBytes(teamPlay, timeLimitMinutes);
 		actorRegistry.streamPlayers().forEach(player -> {
-			udpServer.sendBytesToClient(player.getClientIp(), startGameMessage);
+			udpServer.sendEventToClient(MessageType.GAME_START, player, (byte)(teamPlay ? 1 : 0), (byte) timeLimitMinutes);
 		});
 
 		adminConsole.refreshTable();
@@ -118,7 +112,7 @@ public class Game implements GameEventsListener {
 		int leadTeam = actorRegistry.getLeadTeam();
 		int winner = teamPlay ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(-1);
 		for (Player player : actorRegistry.getPlayers()) {
-			udpServer.sendEventToClient(Messaging.GAME_OVER, player, winner);
+			udpServer.sendEventToClient(MessageType.GAME_OVER, player, (byte)winner);
 		}
 		sendPlayerValuesSnapshotToAll(false);
 	}

@@ -14,10 +14,17 @@ public class ActorRegistry {
 
 	private final List<Actor> actors = new ArrayList<>();
 
+	public static final int PLAYER_COUNT = 6; // should be configurable
+	public static final int RESPAWN_POINT_COUNT = PLAYER_COUNT;
+
+	private List<Integer> respawnPointsIds = new ArrayList<>(RESPAWN_POINT_COUNT);
+
 	public ActorRegistry() {// this should be in config screen before running the game
-		for (int i = 0; i < 6; i++) {
+		for (int i = 0; i < PLAYER_COUNT; i++) {
 			actors.add(new Player(i, "Player-%d".formatted(i+1), 100));
-			actors.add(new RespawnPoint(i));
+		}
+		for (int i = 0; i < RESPAWN_POINT_COUNT; i++) {
+			respawnPointsIds.add(i);
 		}
 		actors.add(new Dispenser(0, Actor.Type.AMMO_DISPENSER));
 		actors.add(new Dispenser(1, Actor.Type.AMMO_DISPENSER));
@@ -51,22 +58,16 @@ public class ActorRegistry {
 			.orElseThrow(() -> new NoSuchElementException("Actor not found: type:" + type + ", id: " + id));
 	}
 
-	public Collection<RespawnPoint> getRespawnPoints() {
-		return actors.stream()
-			.filter(actor -> actor.getType() == Actor.Type.RESPAWN_POINT)
-			.map(actor -> (RespawnPoint) actor)
-			.toList();
-	}
-
 	public Actor getActorByMessage(Messaging.MessageFromClient message) {
 		var id = message.getActorId();
-		var type = switch (message.getType()) {
-			case Messaging.RESPAWN_POINT_PING -> Actor.Type.RESPAWN_POINT;
-			case Messaging.HEALTH_DISPENSER_PING -> Actor.Type.HEALTH_DISPENSER;
-			case Messaging.AMMO_DISPENSER_PING -> Actor.Type.AMMO_DISPENSER;
-			default -> Actor.Type.PLAYER;
-		};
-		return getActorByTypeAndId(type, id);
+		var type = message.getTypeId();
+		if (type == MessageType.HEALTH_DISPENSER_PING.id()) {
+			return getActorByTypeAndId(Actor.Type.HEALTH_DISPENSER, id);
+		} else if (type == MessageType.AMMO_DISPENSER_PING.id()) {
+			return getActorByTypeAndId(Actor.Type.AMMO_DISPENSER, id);
+		} else {
+			return getActorByTypeAndId(Actor.Type.PLAYER, id);
+		}
 	}
 
 	public LinkedHashMap<Integer, Integer> getTeamScores() {
@@ -102,7 +103,6 @@ public class ActorRegistry {
 	}
 
 	public List<Integer> shuffledRespawnPointIds() {
-		var respawnPointsIds = streamByType(Actor.Type.RESPAWN_POINT).map(Actor::getId).collect(Collectors.toList());
 		Collections.shuffle(respawnPointsIds);
 		var pointsToMakeUp = streamPlayers().count() - respawnPointsIds.size();
 		for (int i = 0; i < pointsToMakeUp; i++) {
@@ -112,7 +112,6 @@ public class ActorRegistry {
 	}
 
 	public int getRandomRespawnPointId() {
-		var respawnPointsIds = streamByType(Actor.Type.RESPAWN_POINT).map(Actor::getId).toList();
 		return respawnPointsIds.get(new Random().nextInt(respawnPointsIds.size()));
 	}
 

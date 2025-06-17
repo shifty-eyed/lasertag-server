@@ -2,11 +2,10 @@ package net.lasertag.lasertagserver.core;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Setter;
-import net.lasertag.lasertagserver.model.Actor;
-import net.lasertag.lasertagserver.model.Dispenser;
-import net.lasertag.lasertagserver.model.Messaging;
+import net.lasertag.lasertagserver.model.*;
+
 import static net.lasertag.lasertagserver.model.Messaging.*;
-import net.lasertag.lasertagserver.model.Player;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -76,7 +75,7 @@ public class UdpServer {
 
 	private void sendAckToClient(InetAddress ip) {
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
-			byte[] sendData = new byte[] {PING};
+			byte[] sendData = new byte[] {MessageType.PING.id()};
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, ip, devicePort);
 			clientSocket.send(sendPacket);
 		} catch (Exception e) {
@@ -84,14 +83,14 @@ public class UdpServer {
 		}
 	}
 
-	public void sendBytesToClient(InetAddress ip, byte[] bytes) {
+	private void sendBytesToClient(InetAddress ip, byte[] bytes) {
 		if (ip == null) {
 			return;
 		}
 		try (DatagramSocket clientSocket = new DatagramSocket()) {
 			DatagramPacket sendPacket = new DatagramPacket(bytes, bytes.length, ip, devicePort);
 			clientSocket.send(sendPacket);
-			System.out.printf("Command to client %s:%d len=%d, data: %s\n",
+			System.out.printf("Bytes to %s:%d len=%d, data: %s\n",
 				sendPacket.getAddress(), sendPacket.getPort(), sendPacket.getLength(), Arrays.toString(sendPacket.getData()));
 		} catch (Exception e) {
 			System.out.println("Error sending command to client: " + e.getMessage());
@@ -114,10 +113,10 @@ public class UdpServer {
 				gameEventsListener.refreshConsoleTable();
 			}
 			lastPingTime.set(message.getActorId(), System.currentTimeMillis());
-			if (PING_GROUP.contains(message.getType())) {
+			if (PING_GROUP.contains(message.getTypeId())) {
 				sendAckToClient(actor.getClientIp());
 			} else {
-				System.out.printf("Message from client len=%d, data: %s\n",	packet.getLength(), message);
+				System.out.printf("Event %s from %s len=%d, data: %s\n", message.getType().name(), actor,	packet.getLength(), message);
 				gameEventsListener.onMessageFromPlayer((Player)actor, message);
 			}
 		} catch (Exception e) {
@@ -142,8 +141,9 @@ public class UdpServer {
 		});
 	}
 
-	public void sendEventToClient(byte type, Actor actor, int extraValue) {
-		var bytes = Messaging.eventToBytes(type, extraValue);
+	public void sendEventToClient(MessageType type, Actor actor, byte... values) {
+		System.out.printf("Event to %s: type=%s, data: %s\n", actor.toString(), type.name(), Arrays.toString(values));
+		var bytes = Messaging.eventToBytes(type.id(), values);
 		sendBytesToClient(actor.getClientIp(), bytes);
 	}
 
@@ -155,7 +155,7 @@ public class UdpServer {
 	public void sendSettingsToAllDispensers() {
 		Stream.concat(actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER), actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)).forEach(actor -> {
 			var dispenser = (Dispenser) actor;
-			sendEventToClient(Messaging.DISPENSER_SET_TIMEOUT, dispenser, dispenser.getDispenseTimeoutSec() / 10);// to pack as 1 byte
+			sendEventToClient(MessageType.DISPENSER_SET_TIMEOUT, dispenser, (byte)(dispenser.getDispenseTimeoutSec() / 10));// to pack as 1 byte
 		});
 	}
 

@@ -11,7 +11,6 @@ public abstract class Actor {
 
 	public enum Type {
 		PLAYER,
-		RESPAWN_POINT,
 		HEALTH_DISPENSER,
 		AMMO_DISPENSER
 	}
@@ -21,7 +20,6 @@ public abstract class Actor {
 
 	@Setter
 	private InetAddress clientIp;
-
 
 	public Actor(int id, Type type) {
 		this.id = id;
@@ -42,5 +40,10 @@ public abstract class Actor {
 	@Override
 	public int hashCode() {
 		return Objects.hash(getId(), getType());
+	}
+
+	@Override
+	public String toString() {
+		return type.name() + "-" + id;
 	}
 }
