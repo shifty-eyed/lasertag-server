@@ -119,7 +119,7 @@ public class UdpServer {
 				gameEventsListener.onMessageFromPlayer((Player)actor, message);
 			}
 		} catch (Exception e) {
-			log.error("Error parsing message: {}", e.getMessage(), e);
+			log.error("Error parsing message from {}: {}", packet.getAddress().getHostAddress(), e.getMessage(), e);
 		}
 	}
 

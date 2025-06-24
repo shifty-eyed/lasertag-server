@@ -21,16 +21,15 @@ public class ActorRegistry {
 
 	public ActorRegistry() {// this should be in config screen before running the game
 		for (int i = 0; i < PLAYER_COUNT; i++) {
-			actors.add(new Player(i, "Player-%d".formatted(i+1), 100));
+			actors.add(new Player(i, "Player-%d".formatted(i), 100));
 		}
 		for (int i = 0; i < RESPAWN_POINT_COUNT; i++) {
 			respawnPointsIds.add(i);
 		}
-		actors.add(new Dispenser(0, Actor.Type.AMMO_DISPENSER));
-		actors.add(new Dispenser(1, Actor.Type.AMMO_DISPENSER));
-
-		actors.add(new Dispenser(0, Actor.Type.HEALTH_DISPENSER));
-		actors.add(new Dispenser(1, Actor.Type.HEALTH_DISPENSER));
+		for (int i = 0; i < 4; i++) {
+			actors.add(new Dispenser(i, Actor.Type.AMMO_DISPENSER));
+			actors.add(new Dispenser(i, Actor.Type.HEALTH_DISPENSER));
+		}
 	}
 
 	public Stream<Actor> streamByType(Actor.Type type) {

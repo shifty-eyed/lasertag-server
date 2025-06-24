@@ -71,8 +71,7 @@ public class Game implements GameEventsListener {
 	private void useDispenser(Player player, Actor.Type dispenserType, int dispenserId, MessageType messageToPlayerType) {
 		var dispenser = (Dispenser) actorRegistry.getActorByTypeAndId(dispenserType, dispenserId);
 		udpServer.sendEventToClient(MessageType.DISPENSER_USED, dispenser);
-		var amount = Math.min(dispenser.getAmount(), player.getMaxHealth() - player.getHealth());
-		udpServer.sendEventToClient(messageToPlayerType, player, (byte)amount);
+		udpServer.sendEventToClient(messageToPlayerType, player, (byte)dispenser.getAmount());
 	}
 
 	@Override
