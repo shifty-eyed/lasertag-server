@@ -2,12 +2,14 @@ package net.lasertag.lasertagserver.ui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.stream.Collectors;
 
 import lombok.Getter;
 import lombok.Setter;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.model.Actor;
+import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
@@ -30,9 +32,6 @@ public class AdminConsole {
 
 	private PlayerTableModel playerTableModel;
 
-	private DispenserTableModel healthDispenserModel;
-
-	private DispenserTableModel ammoDispenserModel;
 	private JPanel scoresContainer;
 	private JPanel mainPanel;
 
@@ -69,10 +68,10 @@ public class AdminConsole {
 		JScrollPane tableScrollPane = new JScrollPane(playerTable);
 
 		JPanel dispensersContainer = new JPanel(new GridLayout(1, 2));
-		healthDispenserModel = initDispenserTable(Actor.Type.HEALTH_DISPENSER, "Health Dispensers", dispensersContainer);
-		ammoDispenserModel = initDispenserTable(Actor.Type.AMMO_DISPENSER, "Ammo Dispensers", dispensersContainer);
+		initDispenserPanel(Actor.Type.HEALTH_DISPENSER, "Health Dispensers", dispensersContainer);
+		initDispenserPanel(Actor.Type.AMMO_DISPENSER, "Ammo Dispensers", dispensersContainer);
 
-		mainPanel = new JPanel(new GridLayout(2, 1));
+		mainPanel = new JPanel(new BorderLayout());
 		mainPanel.add(tableScrollPane, BorderLayout.CENTER);
 		mainPanel.add(dispensersContainer, BorderLayout.SOUTH);
 
@@ -106,24 +105,70 @@ public class AdminConsole {
 		frame.setVisible(true);
 	}
 
-	private DispenserTableModel initDispenserTable(Actor.Type type, String title, JPanel container) {
-		DispenserTableModel model = new DispenserTableModel(actorRegistry, type);
-		model.addTableModelListener(event -> {
-			gameEventsListener.onDispenserSettingsUpdated();
+	private void initDispenserPanel(Actor.Type type, String title, JPanel container) {
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.setBorder(BorderFactory.createEtchedBorder());
+		
+		JLabel onlineLabel = new JLabel(title);
+		updateOnlineDispensersLabel(title, onlineLabel, type);
+		panel.add(onlineLabel, BorderLayout.NORTH);
+		
+		JPanel fieldsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+		
+		JLabel timeoutLabel = new JLabel("Timeout:");
+		JTextField timeoutField = new JTextField(8);
+		JLabel amountLabel = new JLabel("Amount:");
+		JTextField amountField = new JTextField(8);
+		
+		fieldsPanel.add(timeoutLabel);
+		fieldsPanel.add(timeoutField);
+		fieldsPanel.add(amountLabel);
+		fieldsPanel.add(amountField);
+		
+		timeoutField.addActionListener(e -> {
+			try {
+				int timeout = Integer.parseInt(timeoutField.getText());
+				updateAllDispensers(type, timeout, -1);
+				
+			} catch (NumberFormatException ex) {}
 		});
-
-		JTable table = new JTable(model);
-		table.setDefaultRenderer(Object.class, new TableCellRenderer(actorRegistry, type));
-		table.setRowHeight(table.getRowHeight() + 30);
-		table.setRowMargin(20);
-		table.setIntercellSpacing(new Dimension(15, 15));
-		table.setRowSelectionAllowed(false);
-		//table.setFont(new Font("Monospaced", Font.PLAIN, 30));
-
-		JScrollPane scrollPane = new JScrollPane(table);
-		scrollPane.setBorder(BorderFactory.createTitledBorder(title));
-		container.add(scrollPane);
-		return model;
+		
+		amountField.addActionListener(e -> {
+			try {
+				int amount = Integer.parseInt(amountField.getText());
+				updateAllDispensers(type, -1, amount);
+			} catch (NumberFormatException ex) {}
+		});
+		
+		panel.add(fieldsPanel, BorderLayout.SOUTH);
+		container.add(panel);
+	}
+	
+	private void updateOnlineDispensersLabel(String title, JLabel label, Actor.Type type) {
+		String onlineIds = actorRegistry.streamByType(type)
+			.filter(Actor::isOnline)
+			.map(actor -> String.valueOf(actor.getId()))
+			.collect(Collectors.joining(", "));
+		
+		if (onlineIds.isEmpty()) {
+			label.setText(title + ": none online");
+		} else {
+			label.setText(title + ": " + onlineIds);
+		}
+	}
+	
+	private void updateAllDispensers(Actor.Type type, int timeout, int amount) {
+		actorRegistry.streamByType(type)
+		.forEach(actor -> {
+			Dispenser dispenser = (Dispenser) actor;
+			if (timeout > 0) {
+				dispenser.setDispenseTimeoutSec(timeout);
+			}
+			if (amount > 0) {
+				dispenser.setAmount(amount);
+			}
+		});
+		gameEventsListener.onDispenserSettingsUpdated();
 	}
 
 	private JButton makeButton(String text, Runnable action) {
