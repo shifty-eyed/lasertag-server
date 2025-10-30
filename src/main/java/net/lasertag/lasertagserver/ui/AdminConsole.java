@@ -17,13 +17,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class AdminConsole {
 
-	@Getter
-	private JTextField indicatorGameTime;
-	@Getter
+	private JTextField filedTimeLimit;
 	private JTextField indicatorStatus;
-	@Getter
-	private JTextField indicatorFragLimit;
-	@Getter
+	private JTextField filedFragLimit;
 	private JCheckBox gameTypeTeam;
 
 	private final ActorRegistry actorRegistry;
@@ -79,31 +75,56 @@ public class AdminConsole {
 
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
 		JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
-
-		indicatorStatus = addIndicator("Status:", 10, topPanel);
+		
+		filedTimeLimit = addIndicator("Time Limit:", 5, topPanel);
+		filedTimeLimit.setText("15");
+		
+		filedFragLimit = addIndicator("Frag Limit:", 3, topPanel);
+		filedFragLimit.setText("10");
+		
+		gameTypeTeam = new JCheckBox("Team Play");
+		topPanel.add(gameTypeTeam);
+		gameTypeTeam.addActionListener(e -> refreshTeamScores());
+		
+		bottomPanel.add(makeButton("Start Game", this::onStartGameButtonClicked));
+		bottomPanel.add(makeButton("End Game", () -> gameEventsListener.eventConsoleEndGame()));
+		
+		indicatorStatus = addIndicator("Status:", 30, bottomPanel);
 		indicatorStatus.setEditable(false);
 
-		indicatorGameTime = addIndicator("Game Time:", 5, topPanel);
-		indicatorGameTime.setText("15");
-
-		indicatorFragLimit = addIndicator("Frag Limit:", 3, topPanel);
-		indicatorFragLimit.setText("10");
-
-		bottomPanel.add(makeButton("Start Game", () -> gameEventsListener.eventConsoleStartGame()));
-		bottomPanel.add(makeButton("End Game", () -> gameEventsListener.eventConsoleEndGame()));
-
-		gameTypeTeam = new JCheckBox("Team Play");
-		bottomPanel.add(gameTypeTeam);
-		gameTypeTeam.addActionListener(e -> refreshTeamScores());
-
 		scoresContainer = new JPanel();
-		bottomPanel.add(scoresContainer);
+		topPanel.add(scoresContainer);
 
 		frame.add(topPanel, BorderLayout.NORTH);
 		frame.add(bottomPanel, BorderLayout.SOUTH);
 
 		frame.setVisible(true);
 	}
+
+	public void updateGameTimeStatus(int timeLeftSeconds) {
+		indicatorStatus.setText("Playing, time left: " + String.format("%02d:%02d", timeLeftSeconds / 60, timeLeftSeconds % 60));
+	}
+
+	public void refreshUI(boolean isPlaying) {
+		indicatorStatus.setText(isPlaying ? "Playing" : "Idle");
+		filedTimeLimit.setEnabled(isPlaying ? false : true);
+		filedFragLimit.setEnabled(isPlaying ? false : true);
+		gameTypeTeam.setEnabled(isPlaying ? false : true);
+		// refresh table and team scores
+		SwingUtilities.invokeLater(() -> {
+			mainPanel.revalidate();
+			mainPanel.repaint();
+			refreshTeamScores();
+		});
+	}
+
+	private void onStartGameButtonClicked() {
+		var timeLimitMinutes = Integer.parseInt(filedTimeLimit.getText());
+		var fragLimit = Integer.parseInt(filedFragLimit.getText());
+		var teamPlay = gameTypeTeam.isSelected() && actorRegistry.getTeamScores().size() > 1;
+		gameEventsListener.eventConsoleStartGame(timeLimitMinutes, fragLimit, teamPlay);
+	}
+
 
 	private void initDispenserPanel(Actor.Type type, String title, JPanel container) {
 		JPanel panel = new JPanel(new BorderLayout());
@@ -206,14 +227,6 @@ public class AdminConsole {
 
 		scoresContainer.revalidate();
 		scoresContainer.repaint();
-	}
-
-	public void refreshTable() {
-		SwingUtilities.invokeLater(() -> {
-			mainPanel.revalidate();
-			mainPanel.repaint();
-			refreshTeamScores();
-		});
 	}
 
 

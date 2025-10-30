@@ -13,9 +13,6 @@ import java.util.concurrent.ScheduledExecutorService;
 @Component
 @Getter
 public class Game implements GameEventsListener {
-	public static final int STATE_IDLE = 1;
-	public static final int STATE_PLAYING = 2;
-
 	public static final int MAX_HEALTH = 100;
 
 	private final ActorRegistry actorRegistry;
@@ -24,8 +21,8 @@ public class Game implements GameEventsListener {
 	private final ScheduledExecutorService scheduler =
 		Executors.newScheduledThreadPool(2, new DaemonThreadFactory("DaemonScheduler"));
 
-	private volatile int gameState = STATE_IDLE;
-
+		
+	private volatile boolean isGamePlaying = false;
 	private int fragLimit;
 	private boolean teamPlay = false;
 	private int timeLimitMinutes;
@@ -65,7 +62,7 @@ public class Game implements GameEventsListener {
 			useDispenser(player, Actor.Type.AMMO_DISPENSER, message.getExtraValue(), MessageType.GIVE_AMMO_TO_PLAYER);
 		}
 
-		adminConsole.refreshTable();
+		adminConsole.refreshUI(isGamePlaying);
 	}
 
 	private void useDispenser(Player player, Actor.Type dispenserType, int dispenserId, MessageType messageToPlayerType) {
@@ -75,42 +72,32 @@ public class Game implements GameEventsListener {
 	}
 
 	@Override
-	public void eventConsoleStartGame() {
-		timeLimitMinutes = Integer.parseInt(adminConsole.getIndicatorGameTime().getText());
-		fragLimit = Integer.parseInt(adminConsole.getIndicatorFragLimit().getText());
-		teamPlay = adminConsole.getGameTypeTeam().isSelected() && actorRegistry.getTeamScores().size() > 1;
+	public void eventConsoleStartGame(int timeMinutes, int fragLimit, boolean teamPlay) {
+		this.timeLimitMinutes = timeMinutes;
+		this.fragLimit = fragLimit;
+		this.teamPlay = teamPlay;
 		timeLeftSeconds = timeLimitMinutes * 60;
 
 		var respawnPointsIt = actorRegistry.shuffledRespawnPointIds().iterator();
 		actorRegistry.streamPlayers().forEach(player -> {
 			player.setScore(0);
 			player.setHealth(0);
-			//player.setAssignedRespawnPoint(respawnPointsIt.next());
-			player.setAssignedRespawnPoint(0);
+			player.setAssignedRespawnPoint(respawnPointsIt.next());
 		});
 
-		setGameState(STATE_PLAYING);
+		setIsGamePlaying(true);
 		sendPlayerValuesSnapshotToAll(true);
 		actorRegistry.streamPlayers().forEach(player -> {
 			if (player.isOnline()) {
 				udpServer.sendEventToClient(MessageType.GAME_START, player, (byte) (teamPlay ? 1 : 0), (byte) timeLimitMinutes);
 			}
 		});
-
-		adminConsole.refreshTable();
-		adminConsole.getIndicatorGameTime().setEditable(false);
-		adminConsole.getIndicatorFragLimit().setEditable(false);
-		adminConsole.getGameTypeTeam().setEnabled(false);
+		
 	}
 
 	@Override
 	public void eventConsoleEndGame() {
-		setGameState(STATE_IDLE);
-		adminConsole.getIndicatorGameTime().setText(timeLimitMinutes+"");
-		adminConsole.getIndicatorGameTime().setEditable(true);
-		adminConsole.getIndicatorFragLimit().setText(fragLimit+"");
-		adminConsole.getIndicatorFragLimit().setEditable(true);
-		adminConsole.getGameTypeTeam().setEnabled(true);
+		setIsGamePlaying(false);
 
 		Player leadPlayer = actorRegistry.getLeadPlayer();
 		int leadTeam = actorRegistry.getLeadTeam();
@@ -123,7 +110,7 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void refreshConsoleTable() {
-		adminConsole.refreshTable();
+		adminConsole.refreshUI(isGamePlaying);
 	}
 
 	@Override
@@ -144,28 +131,24 @@ public class Game implements GameEventsListener {
 	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
 	public void updateGameTime() {
 		timeLeftSeconds--;
-		if (gameState == STATE_PLAYING) {
+		if (isGamePlaying) {
 			if (timeLeftSeconds <= 0) {
 				eventConsoleEndGame();
 				return;
 			}
-			adminConsole.getIndicatorGameTime().setText(String.format("%02d:%02d", timeLeftSeconds / 60, timeLeftSeconds % 60));
+			adminConsole.updateGameTimeStatus(timeLeftSeconds);
 		}
 	}
 
-	private void setGameState(int newState) {
-		if (gameState != newState) {
-			gameState = newState;
-			adminConsole.getIndicatorStatus().setText(switch (gameState) {
-				case STATE_IDLE -> "Idle";
-				case STATE_PLAYING -> "Playing";
-				default -> "Unknown";
-			});
+	private void setIsGamePlaying(boolean newState) {
+		if (isGamePlaying != newState) {
+			isGamePlaying = newState;
+			adminConsole.refreshUI(newState);
 		}
 	}
 
 	private void sendPlayerValuesSnapshotToAll(boolean includeNames) {
-		udpServer.sendStatsToAll(includeNames, gameState == STATE_PLAYING, teamPlay, timeLeftSeconds);
+		udpServer.sendStatsToAll(includeNames, isGamePlaying, teamPlay, timeLeftSeconds);
 	}
 
 
