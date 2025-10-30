@@ -2,91 +2,48 @@ package net.lasertag.lasertagserver.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.lasertag.lasertagserver.core.Game;
-
-import java.net.InetAddress;
-
-import static net.lasertag.lasertagserver.core.Game.GUN_FIRE_INTERVAL_MILLIS;
 
 @Getter
-public class Player {
-
-	private final int id;
+public class Player extends Actor {
 
 	@Setter
 	private String name;
 	@Setter
-	private int score;
-	@Setter
 	private int health;
 	@Setter
-	private int maxHealth;
-
-	private int bulletsLeft;
-	@Setter
-	private int magazineSize;
-	@Setter
-	private int respawnTimeSeconds;
+	private int score;
 	@Setter
 	private int teamId;
 	@Setter
 	private int damage;
+	@Setter
+	private int bulletsMax;
+	@Setter
+	private int assignedRespawnPoint;
+	@Setter
+	private boolean flagCarrier;
 
-	@Setter
-	private int respawnCounter;
-	@Setter
-	private InetAddress gunIp;
-	@Setter
-	private InetAddress vestIp;
-	@Setter
-	private InetAddress phoneIp;
+	private int maxHealth;
 
-	private long lastShotTime = 0;
-
-	public Player(int id, String name, int maxHealth) {
-		this.id = id;
-		this.name = name;
+	public Player(int id,  String name, int maxHealth) {
+		super(id, Type.PLAYER);
 		this.maxHealth = maxHealth;
+		this.name = name;
 		this.health = maxHealth;
-		this.magazineSize = 10;
 		this.score = 0;
-		this.respawnTimeSeconds = 20;
-		this.teamId = Game.TEAM_YELLOW;
+		this.teamId = Messaging.TEAM_YELLOW;
 		this.damage = 10;
-		this.respawnCounter = 0;
+		this.bulletsMax = 40;
+		this.assignedRespawnPoint = -1;
+		this.flagCarrier = false;
 	}
 
-	public void shoot() {
-		if (bulletsLeft > 0) {
-			bulletsLeft--;
-			lastShotTime = System.currentTimeMillis();
+	public boolean updateHealth(int health) {
+		if (this.health == health) {
+			return false; // no change
 		}
-	}
-
-	public void reload() {
-		bulletsLeft = magazineSize;
-	}
-
-	public boolean canHit() {
-		return bulletsLeft > 0
-			|| (System.currentTimeMillis() - lastShotTime) < GUN_FIRE_INTERVAL_MILLIS;
-	}
-
-	public boolean isOnline() {
-		return gunIp != null || vestIp != null || phoneIp != null;
-	}
-
-	public String devicesOnline() {
-		return (gunIp != null ? "G" : "") + (vestIp != null ? "V" : "") + (phoneIp != null ? "P" : "");
-	}
-
-	public boolean isAlive() {
-		return health > 0;
-	}
-
-	public void reset() {
-		health = maxHealth;
-		reload();
+		this.health = health;
+		return true;
 	}
 
 }

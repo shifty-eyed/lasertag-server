@@ -1,21 +1,20 @@
 package net.lasertag.lasertagserver.core;
 
+import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 
 public interface GameEventsListener {
-	void eventGunShot(Player player);
+	void onMessageFromPlayer(Player player, Messaging.MessageFromClient message);
 
-	void eventGunReload(Player player);
-
-	void eventVestGotHit(Player player, Player hitByPlayer);
-
-	void eventConsoleScheduleStartGame();
+	void eventConsoleStartGame(int timeMinutes, int fragLimit, boolean teamPlay);
 
 	void eventConsoleEndGame();
 
 	void refreshConsoleTable();
 
-	void onPlayerDataUpdated(Player player);
+	void onPlayerJoinedOrLeft();
 
-	void deviceConnected(Player player);
+	void onPlayerDataUpdated(Player player, boolean isNameUpdated);
+
+	void onDispenserSettingsUpdated();
 }
