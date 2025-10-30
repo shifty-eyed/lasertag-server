@@ -3,6 +3,9 @@ package net.lasertag.lasertagserver.core;
 import lombok.Getter;
 import net.lasertag.lasertagserver.model.*;
 import net.lasertag.lasertagserver.ui.AdminConsole;
+import net.lasertag.lasertagserver.ui.WebAdminConsole;
+import net.lasertag.lasertagserver.web.SseEventService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +21,8 @@ public class Game implements GameEventsListener {
 	private final ActorRegistry actorRegistry;
 	private final UdpServer udpServer;
 	private final AdminConsole adminConsole;
+	private final WebAdminConsole webAdminConsole;
+	private final SseEventService sseEventService;
 	private final ScheduledExecutorService scheduler =
 		Executors.newScheduledThreadPool(2, new DaemonThreadFactory("DaemonScheduler"));
 
@@ -28,12 +33,23 @@ public class Game implements GameEventsListener {
 	private int timeLimitMinutes;
 	private int timeLeftSeconds = 0;
 
-	public Game(ActorRegistry actorRegistry, UdpServer udpServer, AdminConsole adminConsole) {
+	public Game(ActorRegistry actorRegistry, UdpServer udpServer, 
+				@Autowired(required = false) AdminConsole adminConsole,
+				@Autowired(required = false) WebAdminConsole webAdminConsole,
+				@Autowired(required = false) SseEventService sseEventService) {
 		this.actorRegistry = actorRegistry;
 		this.udpServer = udpServer;
 		this.adminConsole = adminConsole;
+		this.webAdminConsole = webAdminConsole;
+		this.sseEventService = sseEventService;
 		udpServer.setGameEventsListener(this);
-		adminConsole.setGameEventsListener(this);
+		
+		if (adminConsole != null) {
+			adminConsole.setGameEventsListener(this);
+		}
+		if (webAdminConsole != null) {
+			webAdminConsole.setGameEventsListener(this);
+		}
 	}
 
 	@Override
@@ -62,7 +78,7 @@ public class Game implements GameEventsListener {
 			useDispenser(player, Actor.Type.AMMO_DISPENSER, message.getExtraValue(), MessageType.GIVE_AMMO_TO_PLAYER);
 		}
 
-		adminConsole.refreshUI(isGamePlaying);
+		refreshConsoleUI(isGamePlaying);
 	}
 
 	private void useDispenser(Player player, Actor.Type dispenserType, int dispenserId, MessageType messageToPlayerType) {
@@ -110,7 +126,7 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void refreshConsoleTable() {
-		adminConsole.refreshUI(isGamePlaying);
+		refreshConsoleUI(isGamePlaying);
 	}
 
 	@Override
@@ -121,6 +137,7 @@ public class Game implements GameEventsListener {
 	@Override
 	public void onPlayerDataUpdated(Player player, boolean isNameUpdated) {
 		sendPlayerValuesSnapshotToAll(isNameUpdated);
+		refreshConsoleUI(isGamePlaying);
 	}
 
 	@Override
@@ -136,14 +153,14 @@ public class Game implements GameEventsListener {
 				eventConsoleEndGame();
 				return;
 			}
-			adminConsole.updateGameTimeStatus(timeLeftSeconds);
+			updateConsoleGameTime(timeLeftSeconds);
 		}
 	}
 
 	private void setIsGamePlaying(boolean newState) {
 		if (isGamePlaying != newState) {
 			isGamePlaying = newState;
-			adminConsole.refreshUI(newState);
+			refreshConsoleUI(newState);
 		}
 	}
 
@@ -151,5 +168,43 @@ public class Game implements GameEventsListener {
 		udpServer.sendStatsToAll(includeNames, isGamePlaying, teamPlay, timeLeftSeconds);
 	}
 
+	private void refreshConsoleUI(boolean isPlaying) {
+		if (adminConsole != null) {
+			adminConsole.refreshUI(isPlaying);
+		}
+		if (webAdminConsole != null) {
+			webAdminConsole.refreshUI(isPlaying);
+		}
+		broadcastGameState();
+	}
+
+	private void updateConsoleGameTime(int timeLeft) {
+		if (adminConsole != null) {
+			adminConsole.updateGameTimeStatus(timeLeft);
+		}
+		if (webAdminConsole != null) {
+			webAdminConsole.updateGameTimeStatus(timeLeft);
+		}
+		broadcastGameState();
+	}
+
+	private void broadcastGameState() {
+		if (sseEventService != null) {
+			sseEventService.sendGameStateUpdate(new GameStateUpdate(
+				isGamePlaying, timeLeftSeconds, teamPlay, fragLimit, 
+				timeLimitMinutes, actorRegistry.getTeamScores()
+			));
+		}
+	}
+
+	// DTO for SSE game state updates
+	private record GameStateUpdate(
+		boolean playing,
+		int timeLeftSeconds,
+		boolean teamPlay,
+		int fragLimit,
+		int timeLimitMinutes,
+		java.util.Map<Integer, Integer> teamScores
+	) {}
 
 }

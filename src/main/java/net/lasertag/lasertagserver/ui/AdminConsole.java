@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.stream.Collectors;
 
-import lombok.Getter;
 import lombok.Setter;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.ActorRegistry;
