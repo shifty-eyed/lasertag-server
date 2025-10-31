@@ -1,13 +1,13 @@
 /* CSS Variables for theming */
 :root {
-    --primary-color: #4CAF50;
-    --danger-color: #f44336;
+    --primary-color: #6ba56e;
+    --danger-color: #d97066;
     --bg-color: #f5f5f5;
     --card-bg: #ffffff;
     --text-color: #333333;
     --border-color: #dddddd;
-    --online-color: #c8ffff;
-    --offline-color: #c89664;
+    --online-color: #e3f2f7;
+    --offline-color: #e8dfd6;
     --shadow: 0 2px 4px rgba(0,0,0,0.1);
     --shadow-hover: 0 4px 8px rgba(0,0,0,0.15);
 }
@@ -34,7 +34,7 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #8b9dc3 0%, #9b8fb5 100%);
     color: white;
     padding: 1rem;
     text-align: center;
@@ -153,7 +153,7 @@ body {
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: #45a049;
+    background-color: #5d9560;
     box-shadow: var(--shadow-hover);
 }
 
@@ -163,7 +163,7 @@ body {
 }
 
 .btn-danger:hover:not(:disabled) {
-    background-color: #da190b;
+    background-color: #c85e55;
     box-shadow: var(--shadow-hover);
 }
 
@@ -203,7 +203,7 @@ body {
 .players-section h2 {
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: #667eea;
+    color: #8b9dc3;
 }
 
 .players-container {
@@ -234,12 +234,12 @@ body {
 
 .player-online {
     background-color: var(--online-color);
-    border-color: #00CED1;
+    border-color: #a8c9d4;
 }
 
 .player-offline {
     background-color: var(--offline-color);
-    border-color: #c89664;
+    border-color: #d4c4b3;
 }
 
 .player-card-header {
@@ -264,7 +264,7 @@ body {
 }
 
 .badge-online {
-    background-color: #4CAF50;
+    background-color: #7eb581;
     color: white;
 }
 
@@ -350,7 +350,7 @@ body {
 }
 
 .players-table th {
-    background-color: #667eea;
+    background-color: #8b9dc3;
     color: white;
     font-weight: 600;
     position: sticky;
@@ -358,7 +358,7 @@ body {
 }
 
 .players-table tr:hover {
-    background-color: rgba(102, 126, 234, 0.1);
+    background-color: rgba(139, 157, 195, 0.1);
 }
 
 .players-table input,
@@ -382,7 +382,7 @@ body {
 .dispensers-section h2 {
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: #667eea;
+    color: #8b9dc3;
 }
 
 .dispensers-container {
@@ -402,12 +402,12 @@ body {
 .dispenser-panel h3 {
     font-size: 1.2rem;
     margin-bottom: 0.75rem;
-    color: #764ba2;
+    color: #9b8fb5;
 }
 
 .dispenser-online-list {
     padding: 0.75rem;
-    background-color: rgba(102, 126, 234, 0.1);
+    background-color: rgba(139, 157, 195, 0.1);
     border-radius: 4px;
     margin-bottom: 1rem;
     font-size: 0.95rem;
@@ -433,12 +433,12 @@ body {
 }
 
 .connection-status.connected {
-    background-color: #4CAF50;
+    background-color: #7eb581;
     color: white;
 }
 
 .connection-status.disconnected {
-    background-color: #f44336;
+    background-color: #d97066;
     color: white;
     animation: blink 1s infinite;
 }

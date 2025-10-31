@@ -3,11 +3,9 @@ const { createApp } = Vue;
 createApp({
     data() {
         return {
-            // Connection state
             connected: false,
             eventSource: null,
 
-            // Game state
             gameState: {
                 playing: false,
                 timeLeftSeconds: 0,
@@ -17,23 +15,19 @@ createApp({
                 teamScores: {}
             },
 
-            // Settings
             settings: {
                 timeLimit: 15,
                 fragLimit: 10,
                 teamPlay: false
             },
 
-            // Players data
             players: [],
 
-            // Dispensers data
             dispensers: {
                 health: [],
                 ammo: []
             },
 
-            // Dispenser settings
             dispenserSettings: {
                 health: {
                     timeout: null,
@@ -45,7 +39,6 @@ createApp({
                 }
             },
 
-            // Team configuration
             teamNames: {
                 0: 'Red',
                 1: 'Blue',
@@ -84,7 +77,6 @@ createApp({
     },
 
     methods: {
-        // Initialize SSE connection
         connectSSE() {
             if (this.eventSource) {
                 this.eventSource.close();
@@ -95,9 +87,6 @@ createApp({
             this.eventSource.addEventListener('game-state', (event) => {
                 const data = JSON.parse(event.data);
                 this.gameState = data;
-                //this.settings.timeLimit = data.timeLimitMinutes;
-                //this.settings.fragLimit = data.fragLimit;
-                //this.settings.teamPlay = data.teamPlay;
             });
 
             this.eventSource.addEventListener('players', (event) => {
@@ -223,17 +212,12 @@ createApp({
                 }
                 
                 console.log(`${type} dispensers updated`);
-                
-                // Clear the fields after successful update
-                settings.timeout = null;
-                settings.amount = null;
             } catch (error) {
                 console.error('Error updating dispensers:', error);
                 alert('Failed to update dispensers');
             }
         },
 
-        // Utility methods
         formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = seconds % 60;
@@ -252,13 +236,12 @@ createApp({
             return this.teamTextColors[teamId] || '#000000';
         },
 
-        // Initial data load
         async loadInitialData() {
             try {
                 // Load game state
-                const stateResponse = await fetch('/api/game/state');
-                if (stateResponse.ok) {
-                    this.gameState = await stateResponse.json();
+                const gameStateResponse = await fetch('/api/game/state');
+                if (gameStateResponse.ok) {
+                    this.gameState = await gameStateResponse.json();
                     this.settings.timeLimit = this.gameState.timeLimitMinutes;
                     this.settings.fragLimit = this.gameState.fragLimit;
                     this.settings.teamPlay = this.gameState.teamPlay;
