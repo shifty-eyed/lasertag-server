@@ -78,9 +78,9 @@ createApp({
 
             this.eventSource = new EventSource('/api/events');
 
-            this.eventSource.addEventListener('game-state', (event) => {
-                this.gameState = JSON.parse(event.data);
-                console.log('Got game state:', this.gameState);
+            this.eventSource.addEventListener('isPlaying', (event) => {
+                this.gameState.playing = JSON.parse(event.data);
+                console.log('Got gameState.playing:', this.gameState.playing);
             });
 
             this.eventSource.addEventListener('players', (event) => {
@@ -88,9 +88,19 @@ createApp({
                 console.log('Got players:', this.players);
             });
 
+            this.eventSource.addEventListener('timeLeft', (event) => {
+                this.gameState.timeLeftSeconds = Number(event.data);
+                console.log('Got timeLeft:', this.gameState.timeLeftSeconds);
+            });
+
             this.eventSource.addEventListener('dispensers', (event) => {
                 this.dispensers = JSON.parse(event.data);
                 console.log('Got dispensers:', this.dispensers);
+            });
+
+            this.eventSource.addEventListener('teamScores', (event) => {
+                this.gameState.teamScores = JSON.parse(event.data);
+                console.log('Got teamScores:', this.gameState.teamScores);
             });
 
             this.eventSource.onopen = () => {

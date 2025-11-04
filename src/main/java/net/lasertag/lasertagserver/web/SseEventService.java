@@ -39,8 +39,12 @@ public class SseEventService {
 		return emitter;
 	}
 
-	public void sendGameStateUpdate(Object gameState) {
-		sendEvent("game-state", gameState);
+	public void sendGameIsPlaying(boolean isPlaying) {
+		sendEvent("isPlaying", isPlaying);
+	}
+
+	public void sendGameTimeLeft(int timeLeft) {
+		sendEvent("timeLeft", timeLeft);
 	}
 
 	public void sendPlayersUpdate(Object players) {
@@ -49,6 +53,10 @@ public class SseEventService {
 
 	public void sendDispensersUpdate(Object dispensers) {
 		sendEvent("dispensers", dispensers);
+	}
+
+	public void sendTeamScoresUpdate(Object teamScores) {
+		sendEvent("teamScores", teamScores);
 	}
 
 	private void sendEvent(String eventName, Object data) {

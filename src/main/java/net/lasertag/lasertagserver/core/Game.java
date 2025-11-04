@@ -4,7 +4,6 @@ import lombok.Getter;
 import net.lasertag.lasertagserver.model.*;
 import net.lasertag.lasertagserver.ui.AdminConsole;
 import net.lasertag.lasertagserver.ui.WebAdminConsole;
-import net.lasertag.lasertagserver.web.SseEventService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -22,26 +21,23 @@ public class Game implements GameEventsListener {
 	private final UdpServer udpServer;
 	private final AdminConsole adminConsole;
 	private final WebAdminConsole webAdminConsole;
-	private final SseEventService sseEventService;
 	private final ScheduledExecutorService scheduler =
 		Executors.newScheduledThreadPool(2, new DaemonThreadFactory("DaemonScheduler"));
 
 		
 	private volatile boolean isGamePlaying = false;
-	private int fragLimit = 10;
+	private int fragLimit = 0;
 	private boolean teamPlay = false;
-	private int timeLimitMinutes = 15;
+	private int timeLimitMinutes = 0;
 	private int timeLeftSeconds = 0;
 
 	public Game(ActorRegistry actorRegistry, UdpServer udpServer, 
 				@Autowired(required = false) AdminConsole adminConsole,
-				@Autowired(required = false) WebAdminConsole webAdminConsole,
-				@Autowired(required = false) SseEventService sseEventService) {
+				@Autowired(required = false) WebAdminConsole webAdminConsole) {
 		this.actorRegistry = actorRegistry;
 		this.udpServer = udpServer;
 		this.adminConsole = adminConsole;
 		this.webAdminConsole = webAdminConsole;
-		this.sseEventService = sseEventService;
 		udpServer.setGameEventsListener(this);
 		
 		if (adminConsole != null) {
@@ -175,7 +171,6 @@ public class Game implements GameEventsListener {
 		if (webAdminConsole != null) {
 			webAdminConsole.refreshUI(isPlaying);
 		}
-		broadcastGameState();
 	}
 
 	private void updateConsoleGameTime(int timeLeft) {
@@ -183,28 +178,9 @@ public class Game implements GameEventsListener {
 			adminConsole.updateGameTimeStatus(timeLeft);
 		}
 		if (webAdminConsole != null) {
-			webAdminConsole.updateGameTimeStatus(timeLeft);
-		}
-		broadcastGameState();
-	}
-
-	private void broadcastGameState() {
-		if (sseEventService != null) {
-			sseEventService.sendGameStateUpdate(new GameStateUpdate(
-				isGamePlaying, timeLeftSeconds, teamPlay, fragLimit, 
-				timeLimitMinutes, actorRegistry.getTeamScores()
-			));
+			webAdminConsole.updateGameTimeLeft(timeLeft);
 		}
 	}
 
-	// DTO for SSE game state updates
-	private record GameStateUpdate(
-		boolean playing,
-		int timeLeftSeconds,
-		boolean teamPlay,
-		int fragLimit,
-		int timeLimitMinutes,
-		java.util.Map<Integer, Integer> teamScores
-	) {}
 
 }

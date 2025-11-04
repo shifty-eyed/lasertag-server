@@ -1,11 +1,8 @@
 package net.lasertag.lasertagserver.web;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 import net.lasertag.lasertagserver.core.ActorRegistry;
-import net.lasertag.lasertagserver.core.Game;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Dispenser;
@@ -25,14 +22,11 @@ public class GameController {
 
 	private final ActorRegistry actorRegistry;
 	private final GameEventsListener gameEventsListener;
-	private final Game game;
 	private final SseEventService sseEventService;
 
-	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, 
-						  Game game, SseEventService sseEventService) {
+	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, SseEventService sseEventService) {
 		this.actorRegistry = actorRegistry;
 		this.gameEventsListener = gameEventsListener;
-		this.game = game;
 		this.sseEventService = sseEventService;
 	}
 
@@ -42,12 +36,10 @@ public class GameController {
 		
 		// Send initial state immediately
 		try {
-			sseEventService.sendGameStateUpdate(getGameStateDto());
 			sseEventService.sendPlayersUpdate(getPlayersList());
 			sseEventService.sendDispensersUpdate(getDispensersMap());
-		} catch (Exception e) {
-			// Ignore, will be sent on next update
-		}
+			sseEventService.sendTeamScoresUpdate(actorRegistry.getTeamScores());
+		} catch (Exception e) {}
 		
 		return emitter;
 	}
@@ -112,18 +104,6 @@ public class GameController {
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
 	}
 
-	// Private helper methods for SSE initial state
-	private GameStateDto getGameStateDto() {
-		return new GameStateDto(
-			game.isGamePlaying(),
-			game.getTimeLeftSeconds(),
-			game.isTeamPlay(),
-			game.getFragLimit(),
-			game.getTimeLimitMinutes(),
-			actorRegistry.getTeamScores()
-		);
-	}
-
 	private List<Player> getPlayersList() {
 		return actorRegistry.getPlayers();
 	}
@@ -168,18 +148,6 @@ public class GameController {
 	public static class UpdateDispenserRequest {
 		private Integer timeout;
 		private Integer amount;
-	}
-
-	@Getter
-	@AllArgsConstructor
-	@ToString
-	public static class GameStateDto {
-		private boolean playing;
-		private int timeLeftSeconds;
-		private boolean teamPlay;
-		private int fragLimit;
-		private int timeLimitMinutes;
-		private Map<Integer, Integer> teamScores;
 	}
 
 }

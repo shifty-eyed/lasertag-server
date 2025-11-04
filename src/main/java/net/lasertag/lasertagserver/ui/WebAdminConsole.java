@@ -7,6 +7,7 @@ import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Player;
 import net.lasertag.lasertagserver.web.SseEventService;
+
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -28,27 +29,21 @@ public class WebAdminConsole {
 		this.sseEventService = sseEventService;
 	}
 
-	public void updateGameTimeStatus(int timeLeftSeconds) {
-		// Send updated game state via SSE
-		broadcastGameState();
-	}
-
 	public void refreshUI(boolean isPlaying) {
-		// Send updated game state and players via SSE
-		broadcastGameState();
+		sseEventService.sendGameIsPlaying(isPlaying);
 		broadcastPlayers();
 		broadcastDispensers();
-	}
-
-	private void broadcastGameState() {
-		// This will be called from Game class, but we need the game reference
-		// For now, we'll trigger it from the controller when needed
-		// The actual state is fetched from Game via the controller
+		broadcastTeamScores();
 	}
 
 	private void broadcastPlayers() {
 		List<Player> players = actorRegistry.getPlayers();
 		sseEventService.sendPlayersUpdate(players);
+	}
+
+	private void broadcastTeamScores() {
+		Map<Integer, Integer> teamScores = actorRegistry.getTeamScores();
+		sseEventService.sendTeamScoresUpdate(teamScores);
 	}
 
 	private void broadcastDispensers() {
@@ -67,6 +62,12 @@ public class WebAdminConsole {
 		
 		sseEventService.sendDispensersUpdate(dispensers);
 	}
+
+	public void updateGameTimeLeft(int timeLeftSeconds) {
+		sseEventService.sendGameTimeLeft(timeLeftSeconds);
+	}
+
+	
 
 }
 
