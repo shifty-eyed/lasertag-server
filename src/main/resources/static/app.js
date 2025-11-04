@@ -15,12 +15,6 @@ createApp({
                 teamScores: {}
             },
 
-            settings: {
-                timeLimit: 15,
-                fragLimit: 10,
-                teamPlay: false
-            },
-
             players: [],
 
             dispensers: {
@@ -30,12 +24,12 @@ createApp({
 
             dispenserSettings: {
                 health: {
-                    timeout: null,
-                    amount: null
+                    timeout: 60,
+                    amount: 40
                 },
                 ammo: {
-                    timeout: null,
-                    amount: null
+                    timeout: 30,
+                    amount: 20
                 }
             },
 
@@ -86,17 +80,17 @@ createApp({
 
             this.eventSource.addEventListener('game-state', (event) => {
                 const data = JSON.parse(event.data);
-                this.gameState = data;
+                this.gameState = data.body;
             });
 
             this.eventSource.addEventListener('players', (event) => {
                 const data = JSON.parse(event.data);
-                this.players = data;
+                this.players = data.body;
             });
 
             this.eventSource.addEventListener('dispensers', (event) => {
                 const data = JSON.parse(event.data);
-                this.dispensers = data;
+                this.dispensers = data.body;
             });
 
             this.eventSource.onopen = () => {
@@ -127,9 +121,9 @@ createApp({
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        timeLimit: this.settings.timeLimit,
-                        fragLimit: this.settings.fragLimit,
-                        teamPlay: this.settings.teamPlay
+                        timeLimit: this.gameState.timeLimitMinutes,
+                        fragLimit: this.gameState.fragLimit,
+                        teamPlay: this.gameState.teamPlay
                     })
                 });
                 
@@ -241,10 +235,11 @@ createApp({
                 // Load game state
                 const gameStateResponse = await fetch('/api/game/state');
                 if (gameStateResponse.ok) {
-                    this.gameState = await gameStateResponse.json();
-                    this.settings.timeLimit = this.gameState.timeLimitMinutes;
-                    this.settings.fragLimit = this.gameState.fragLimit;
-                    this.settings.teamPlay = this.gameState.teamPlay;
+                    const newState = await gameStateResponse.json();
+                    this.gameState = {
+                        ...this.gameState,
+                        ...newState
+                    };
                 }
 
                 // Load players

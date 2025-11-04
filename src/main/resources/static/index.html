@@ -24,7 +24,7 @@
                 <input 
                     type="number" 
                     id="timeLimit" 
-                    v-model.number="settings.timeLimit" 
+                    v-model.number="gameState.timeLimitMinutes" 
                     :disabled="gameState.playing"
                     min="1"
                     max="60">
@@ -35,7 +35,7 @@
                 <input 
                     type="number" 
                     id="fragLimit" 
-                    v-model.number="settings.fragLimit" 
+                    v-model.number="gameState.fragLimit" 
                     :disabled="gameState.playing"
                     min="1"
                     max="100">
@@ -45,7 +45,7 @@
                 <label>
                     <input 
                         type="checkbox" 
-                        v-model="settings.teamPlay" 
+                        v-model="gameState.teamPlay" 
                         :disabled="gameState.playing">
                     Team Play
                 </label>
@@ -68,7 +68,7 @@
         </section>
 
         <!-- Team Scores -->
-        <section v-if="settings.teamPlay && gameState.teamScores && Object.keys(gameState.teamScores).length > 0" class="team-scores">
+        <section v-if="gameState.teamPlay && gameState.teamScores && Object.keys(gameState.teamScores).length > 0" class="team-scores">
             <div 
                 v-for="(score, teamId) in sortedTeamScores" 
                 :key="teamId"

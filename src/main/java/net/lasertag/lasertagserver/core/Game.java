@@ -28,9 +28,9 @@ public class Game implements GameEventsListener {
 
 		
 	private volatile boolean isGamePlaying = false;
-	private int fragLimit;
+	private int fragLimit = 10;
 	private boolean teamPlay = false;
-	private int timeLimitMinutes;
+	private int timeLimitMinutes = 15;
 	private int timeLeftSeconds = 0;
 
 	public Game(ActorRegistry actorRegistry, UdpServer udpServer, 
