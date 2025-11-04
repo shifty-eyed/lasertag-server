@@ -30,7 +30,8 @@ public class SseEventService {
 		});
 
 		emitter.onError(e -> {
-			log.error("SSE emitter error", e);
+			log.error("SSE emitter error");
+			emitter.complete();
 			emitters.remove(emitter);
 		});
 
@@ -54,7 +55,7 @@ public class SseEventService {
 		if (emitters.isEmpty()) {
 			return;
 		}
-
+		log.info("Sending SSE event: {} with data: {}", eventName, data.toString());
 		try {
 			String jsonData = objectMapper.writeValueAsString(data);
 			CopyOnWriteArrayList<SseEmitter> deadEmitters = new CopyOnWriteArrayList<>();

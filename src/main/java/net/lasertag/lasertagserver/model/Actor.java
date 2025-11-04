@@ -44,6 +44,6 @@ public abstract class Actor {
 
 	@Override
 	public String toString() {
-		return type.name() + "-" + id;
+		return "Actor[" + type.name() + "-" + id + "]";
 	}
 }

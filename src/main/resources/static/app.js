@@ -79,18 +79,18 @@ createApp({
             this.eventSource = new EventSource('/api/events');
 
             this.eventSource.addEventListener('game-state', (event) => {
-                const data = JSON.parse(event.data);
-                this.gameState = data.body;
+                this.gameState = JSON.parse(event.data);
+                console.log('Got game state:', this.gameState);
             });
 
             this.eventSource.addEventListener('players', (event) => {
-                const data = JSON.parse(event.data);
-                this.players = data.body;
+                this.players = JSON.parse(event.data);
+                console.log('Got players:', this.players);
             });
 
             this.eventSource.addEventListener('dispensers', (event) => {
-                const data = JSON.parse(event.data);
-                this.dispensers = data.body;
+                this.dispensers = JSON.parse(event.data);
+                console.log('Got dispensers:', this.dispensers);
             });
 
             this.eventSource.onopen = () => {

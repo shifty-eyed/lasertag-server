@@ -3,6 +3,7 @@ package net.lasertag.lasertagserver.web;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.core.Game;
 import net.lasertag.lasertagserver.core.GameEventsListener;
@@ -171,6 +172,7 @@ public class GameController {
 
 	@Getter
 	@AllArgsConstructor
+	@ToString
 	public static class GameStateDto {
 		private boolean playing;
 		private int timeLeftSeconds;
