@@ -76,15 +76,13 @@ public class GameController {
 	}
 
 	@GetMapping("/players")
-	public ResponseEntity<List<PlayerDto>> getPlayers() {
-		List<PlayerDto> players = actorRegistry.getPlayers().stream()
-			.map(this::toPlayerDto)
-			.collect(Collectors.toList());
+	public ResponseEntity<List<Player>> getPlayers() {
+		List<Player> players = actorRegistry.getPlayers();
 		return ResponseEntity.ok(players);
 	}
 
 	@PutMapping("/players/{id}")
-	public ResponseEntity<PlayerDto> updatePlayer(@PathVariable int id, @RequestBody UpdatePlayerRequest request) {
+	public ResponseEntity<Player> updatePlayer(@PathVariable int id, @RequestBody UpdatePlayerRequest request) {
 		Player player = actorRegistry.getPlayerById(id);
 		
 		boolean nameUpdated = false;
@@ -104,19 +102,19 @@ public class GameController {
 		
 		gameEventsListener.onPlayerDataUpdated(player, nameUpdated);
 		
-		return ResponseEntity.ok(toPlayerDto(player));
+		return ResponseEntity.ok(player);
 	}
 
 	@GetMapping("/dispensers")
-	public ResponseEntity<Map<String, List<DispenserDto>>> getDispensers() {
-		Map<String, List<DispenserDto>> result = new HashMap<>();
+	public ResponseEntity<Map<String, List<Dispenser>>> getDispensers() {
+		Map<String, List<Dispenser>> result = new HashMap<>();
 		
-		List<DispenserDto> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
-			.map(actor -> toDispenserDto((Dispenser) actor))
+		List<Dispenser> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
+			.map(actor -> (Dispenser) actor)
 			.collect(Collectors.toList());
 		
-		List<DispenserDto> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
-			.map(actor -> toDispenserDto((Dispenser) actor))
+		List<Dispenser> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
+			.map(actor -> (Dispenser) actor)
 			.collect(Collectors.toList());
 		
 		result.put("health", healthDispensers);
@@ -147,30 +145,6 @@ public class GameController {
 		gameEventsListener.onDispenserSettingsUpdated();
 		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
-	}
-
-	private PlayerDto toPlayerDto(Player player) {
-		return new PlayerDto(
-			player.getId(),
-			player.getName(),
-			player.getScore(),
-			player.getHealth(),
-			player.getBulletsMax(),
-			player.getDamage(),
-			player.getTeamId(),
-			player.getAssignedRespawnPoint(),
-			player.isOnline()
-		);
-	}
-
-	private DispenserDto toDispenserDto(Dispenser dispenser) {
-		return new DispenserDto(
-			dispenser.getId(),
-			dispenser.getType().name(),
-			dispenser.getAmount(),
-			dispenser.getDispenseTimeoutSec(),
-			dispenser.isOnline()
-		);
 	}
 
 	// DTOs
@@ -209,28 +183,5 @@ public class GameController {
 		private Map<Integer, Integer> teamScores;
 	}
 
-	@Getter
-	@AllArgsConstructor
-	public static class PlayerDto {
-		private int id;
-		private String name;
-		private int score;
-		private int health;
-		private int bulletsMax;
-		private int damage;
-		private int teamId;
-		private int assignedRespawnPoint;
-		private boolean online;
-	}
-
-	@Getter
-	@AllArgsConstructor
-	public static class DispenserDto {
-		private int id;
-		private String type;
-		private int amount;
-		private int dispenseTimeoutSec;
-		private boolean online;
-	}
 }
 

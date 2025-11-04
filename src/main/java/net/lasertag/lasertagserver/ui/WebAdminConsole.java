@@ -6,7 +6,6 @@ import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Player;
-import net.lasertag.lasertagserver.web.GameController;
 import net.lasertag.lasertagserver.web.SseEventService;
 import org.springframework.stereotype.Component;
 
@@ -48,21 +47,19 @@ public class WebAdminConsole {
 	}
 
 	private void broadcastPlayers() {
-		List<GameController.PlayerDto> players = actorRegistry.getPlayers().stream()
-			.map(this::toPlayerDto)
-			.collect(Collectors.toList());
+		List<Player> players = actorRegistry.getPlayers();
 		sseEventService.sendPlayersUpdate(players);
 	}
 
 	private void broadcastDispensers() {
-		Map<String, List<GameController.DispenserDto>> dispensers = new HashMap<>();
+		Map<String, List<Dispenser>> dispensers = new HashMap<>();
 		
-		List<GameController.DispenserDto> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
-			.map(actor -> toDispenserDto((Dispenser) actor))
+		List<Dispenser> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
+			.map(actor -> (Dispenser) actor)
 			.collect(Collectors.toList());
 		
-		List<GameController.DispenserDto> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
-			.map(actor -> toDispenserDto((Dispenser) actor))
+		List<Dispenser> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
+			.map(actor -> (Dispenser) actor)
 			.collect(Collectors.toList());
 		
 		dispensers.put("health", healthDispensers);
@@ -71,28 +68,5 @@ public class WebAdminConsole {
 		sseEventService.sendDispensersUpdate(dispensers);
 	}
 
-	private GameController.PlayerDto toPlayerDto(Player player) {
-		return new GameController.PlayerDto(
-			player.getId(),
-			player.getName(),
-			player.getScore(),
-			player.getHealth(),
-			player.getBulletsMax(),
-			player.getDamage(),
-			player.getTeamId(),
-			player.getAssignedRespawnPoint(),
-			player.isOnline()
-		);
-	}
-
-	private GameController.DispenserDto toDispenserDto(Dispenser dispenser) {
-		return new GameController.DispenserDto(
-			dispenser.getId(),
-			dispenser.getType().name(),
-			dispenser.getAmount(),
-			dispenser.getDispenseTimeoutSec(),
-			dispenser.isOnline()
-		);
-	}
 }
 
