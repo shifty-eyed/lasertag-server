@@ -228,42 +228,11 @@ createApp({
 
         getTeamTextColor(teamId) {
             return this.teamTextColors[teamId] || '#000000';
-        },
-
-        async loadInitialData() {
-            try {
-                // Load game state
-                const gameStateResponse = await fetch('/api/game/state');
-                if (gameStateResponse.ok) {
-                    const newState = await gameStateResponse.json();
-                    this.gameState = {
-                        ...this.gameState,
-                        ...newState
-                    };
-                }
-
-                // Load players
-                const playersResponse = await fetch('/api/players');
-                if (playersResponse.ok) {
-                    this.players = await playersResponse.json();
-                }
-
-                // Load dispensers
-                const dispensersResponse = await fetch('/api/dispensers');
-                if (dispensersResponse.ok) {
-                    this.dispensers = await dispensersResponse.json();
-                }
-            } catch (error) {
-                console.error('Error loading initial data:', error);
-            }
         }
     },
 
     mounted() {
-        // Load initial data
-        this.loadInitialData();
-        
-        // Connect to SSE
+        // Connect to SSE (initial data is sent automatically)
         this.connectSSE();
     },
 

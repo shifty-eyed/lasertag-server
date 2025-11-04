@@ -41,9 +41,9 @@ public class GameController {
 		
 		// Send initial state immediately
 		try {
-			sseEventService.sendGameStateUpdate(getGameState());
-			sseEventService.sendPlayersUpdate(getPlayers());
-			sseEventService.sendDispensersUpdate(getDispensers());
+			sseEventService.sendGameStateUpdate(getGameStateDto());
+			sseEventService.sendPlayersUpdate(getPlayersList());
+			sseEventService.sendDispensersUpdate(getDispensersMap());
 		} catch (Exception e) {
 			// Ignore, will be sent on next update
 		}
@@ -61,24 +61,6 @@ public class GameController {
 	public ResponseEntity<Map<String, String>> endGame() {
 		gameEventsListener.eventConsoleEndGame();
 		return ResponseEntity.ok(Map.of("status", "Game ended"));
-	}
-
-	@GetMapping("/game/state")
-	public ResponseEntity<GameStateDto> getGameState() {
-		return ResponseEntity.ok(new GameStateDto(
-			game.isGamePlaying(),
-			game.getTimeLeftSeconds(),
-			game.isTeamPlay(),
-			game.getFragLimit(),
-			game.getTimeLimitMinutes(),
-			actorRegistry.getTeamScores()
-		));
-	}
-
-	@GetMapping("/players")
-	public ResponseEntity<List<Player>> getPlayers() {
-		List<Player> players = actorRegistry.getPlayers();
-		return ResponseEntity.ok(players);
 	}
 
 	@PutMapping("/players/{id}")
@@ -105,24 +87,6 @@ public class GameController {
 		return ResponseEntity.ok(player);
 	}
 
-	@GetMapping("/dispensers")
-	public ResponseEntity<Map<String, List<Dispenser>>> getDispensers() {
-		Map<String, List<Dispenser>> result = new HashMap<>();
-		
-		List<Dispenser> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
-			.map(actor -> (Dispenser) actor)
-			.collect(Collectors.toList());
-		
-		List<Dispenser> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
-			.map(actor -> (Dispenser) actor)
-			.collect(Collectors.toList());
-		
-		result.put("health", healthDispensers);
-		result.put("ammo", ammoDispensers);
-		
-		return ResponseEntity.ok(result);
-	}
-
 	@PutMapping("/dispensers/{type}")
 	public ResponseEntity<Map<String, String>> updateDispensers(
 		@PathVariable String type, 
@@ -145,6 +109,39 @@ public class GameController {
 		gameEventsListener.onDispenserSettingsUpdated();
 		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
+	}
+
+	// Private helper methods for SSE initial state
+	private GameStateDto getGameStateDto() {
+		return new GameStateDto(
+			game.isGamePlaying(),
+			game.getTimeLeftSeconds(),
+			game.isTeamPlay(),
+			game.getFragLimit(),
+			game.getTimeLimitMinutes(),
+			actorRegistry.getTeamScores()
+		);
+	}
+
+	private List<Player> getPlayersList() {
+		return actorRegistry.getPlayers();
+	}
+
+	private Map<String, List<Dispenser>> getDispensersMap() {
+		Map<String, List<Dispenser>> result = new HashMap<>();
+		
+		List<Dispenser> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
+			.map(actor -> (Dispenser) actor)
+			.collect(Collectors.toList());
+		
+		List<Dispenser> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
+			.map(actor -> (Dispenser) actor)
+			.collect(Collectors.toList());
+		
+		result.put("health", healthDispensers);
+		result.put("ammo", ammoDispensers);
+		
+		return result;
 	}
 
 	// DTOs
