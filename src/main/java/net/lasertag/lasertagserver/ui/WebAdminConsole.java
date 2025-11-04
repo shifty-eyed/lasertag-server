@@ -47,6 +47,10 @@ public class WebAdminConsole {
 	}
 
 	private void broadcastDispensers() {
+		sseEventService.sendDispensersUpdate(getDispensersMap());
+	}
+
+	public Map<String, List<Dispenser>> getDispensersMap() {
 		Map<String, List<Dispenser>> dispensers = new HashMap<>();
 		
 		List<Dispenser> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
@@ -60,7 +64,7 @@ public class WebAdminConsole {
 		dispensers.put("health", healthDispensers);
 		dispensers.put("ammo", ammoDispensers);
 		
-		sseEventService.sendDispensersUpdate(dispensers);
+		return dispensers;
 	}
 
 	public void updateGameTimeLeft(int timeLeftSeconds) {

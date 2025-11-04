@@ -7,14 +7,12 @@ import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Player;
+import net.lasertag.lasertagserver.ui.WebAdminConsole;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -23,11 +21,14 @@ public class GameController {
 	private final ActorRegistry actorRegistry;
 	private final GameEventsListener gameEventsListener;
 	private final SseEventService sseEventService;
+	private final WebAdminConsole webAdminConsole;
 
-	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, SseEventService sseEventService) {
+	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, 
+						  SseEventService sseEventService, WebAdminConsole webAdminConsole) {
 		this.actorRegistry = actorRegistry;
 		this.gameEventsListener = gameEventsListener;
 		this.sseEventService = sseEventService;
+		this.webAdminConsole = webAdminConsole;
 	}
 
 	@GetMapping("/events")
@@ -36,8 +37,8 @@ public class GameController {
 		
 		// Send initial state immediately
 		try {
-			sseEventService.sendPlayersUpdate(getPlayersList());
-			sseEventService.sendDispensersUpdate(getDispensersMap());
+			sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
+			sseEventService.sendDispensersUpdate(webAdminConsole.getDispensersMap());
 			sseEventService.sendTeamScoresUpdate(actorRegistry.getTeamScores());
 		} catch (Exception e) {}
 		
@@ -46,7 +47,8 @@ public class GameController {
 
 	@PostMapping("/game/start")
 	public ResponseEntity<Map<String, String>> startGame(@RequestBody StartGameRequest request) {
-		gameEventsListener.eventConsoleStartGame(request.getTimeLimit(), request.getFragLimit(), request.isTeamPlay());
+		boolean teamPlay = request.isTeamPlay() && actorRegistry.getTeamScores().size() > 1;
+		gameEventsListener.eventConsoleStartGame(request.getTimeLimit(), request.getFragLimit(), teamPlay);
 		return ResponseEntity.ok(Map.of("status", "Game started"));
 	}
 
@@ -101,28 +103,10 @@ public class GameController {
 		
 		gameEventsListener.onDispenserSettingsUpdated();
 		
+		// Broadcast updated dispenser state to web clients
+		sseEventService.sendDispensersUpdate(webAdminConsole.getDispensersMap());
+		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
-	}
-
-	private List<Player> getPlayersList() {
-		return actorRegistry.getPlayers();
-	}
-
-	private Map<String, List<Dispenser>> getDispensersMap() {
-		Map<String, List<Dispenser>> result = new HashMap<>();
-		
-		List<Dispenser> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
-			.map(actor -> (Dispenser) actor)
-			.collect(Collectors.toList());
-		
-		List<Dispenser> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
-			.map(actor -> (Dispenser) actor)
-			.collect(Collectors.toList());
-		
-		result.put("health", healthDispensers);
-		result.put("ammo", ammoDispensers);
-		
-		return result;
 	}
 
 	// DTOs

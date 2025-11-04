@@ -58,15 +58,7 @@ createApp({
                 .map(d => d.id);
         },
         sortedTeamScores() {
-            if (!this.gameState.teamScores) return {};
-            
-            // Sort by score descending
-            return Object.entries(this.gameState.teamScores)
-                .sort((a, b) => b[1] - a[1])
-                .reduce((acc, [key, val]) => {
-                    acc[key] = val;
-                    return acc;
-                }, {});
+            return this.gameState.teamScores || {};
         }
     },
 
@@ -90,6 +82,7 @@ createApp({
 
             this.eventSource.addEventListener('timeLeft', (event) => {
                 this.gameState.timeLeftSeconds = Number(event.data);
+                this.gameState.playing = this.gameState.timeLeftSeconds > 0;
                 console.log('Got timeLeft:', this.gameState.timeLeftSeconds);
             });
 

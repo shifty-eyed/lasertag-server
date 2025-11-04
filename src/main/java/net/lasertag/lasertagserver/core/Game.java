@@ -143,8 +143,8 @@ public class Game implements GameEventsListener {
 
 	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
 	public void updateGameTime() {
-		timeLeftSeconds--;
 		if (isGamePlaying) {
+			timeLeftSeconds--;
 			if (timeLeftSeconds <= 0) {
 				eventConsoleEndGame();
 				return;
