@@ -1,6 +1,7 @@
 package net.lasertag.lasertagserver.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -14,6 +15,12 @@ public class SseEventService {
 
 	private final CopyOnWriteArrayList<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 	private final ObjectMapper objectMapper = new ObjectMapper();
+
+	@PostConstruct
+	public void init() {
+		// Register this service with the SseLogAppender
+		SseLogAppender.setSseEventService(this);
+	}
 
 	public SseEmitter createEmitter() {
 		SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
@@ -57,6 +64,10 @@ public class SseEventService {
 
 	public void sendTeamScoresUpdate(Object teamScores) {
 		sendEvent("teamScores", teamScores);
+	}
+
+	public void sendLogMessage(String logMessage) {
+		sendEvent("log", logMessage);
 	}
 
 	private void sendEvent(String eventName, Object data) {

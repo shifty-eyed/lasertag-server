@@ -4,9 +4,13 @@ import lombok.Getter;
 import net.lasertag.lasertagserver.model.*;
 import net.lasertag.lasertagserver.ui.AdminConsole;
 import net.lasertag.lasertagserver.ui.WebAdminConsole;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
 
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -15,6 +19,8 @@ import java.util.concurrent.ScheduledExecutorService;
 @Component
 @Getter
 public class Game implements GameEventsListener {
+	private static final Logger log = LoggerFactory.getLogger(Game.class);
+
 	public static final int MAX_HEALTH = 100;
 
 	private final ActorRegistry actorRegistry;
@@ -85,6 +91,7 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void eventConsoleStartGame(int timeMinutes, int fragLimit, boolean teamPlay) {
+		log.info("Starting game with timeLimitMinutes={}, fragLimit={}, teamPlay={}", timeMinutes, fragLimit, teamPlay);
 		this.timeLimitMinutes = timeMinutes;
 		this.fragLimit = fragLimit;
 		this.teamPlay = teamPlay;
@@ -109,6 +116,7 @@ public class Game implements GameEventsListener {
 
 	@Override
 	public void eventConsoleEndGame() {
+		log.info("Ending game");
 		setIsGamePlaying(false);
 
 		Player leadPlayer = actorRegistry.getLeadPlayer();

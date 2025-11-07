@@ -42,7 +42,9 @@ createApp({
                 5: 'Cyan'
             },
             teamColors: ['#DC143C', '#1E90FF', '#32CD32', '#FFD700', '#FF00FF', '#00CED1'],
-            teamTextColors: ['#FFFFFF', '#FFFFFF', '#000000', '#000000', '#FFFFFF', '#000000']
+            teamTextColors: ['#FFFFFF', '#FFFFFF', '#000000', '#000000', '#FFFFFF', '#000000'],
+
+            logs: []
         };
     },
 
@@ -94,6 +96,19 @@ createApp({
             this.eventSource.addEventListener('teamScores', (event) => {
                 this.gameState.teamScores = JSON.parse(event.data);
                 console.log('Got teamScores:', this.gameState.teamScores);
+            });
+
+            this.eventSource.addEventListener('log', (event) => {
+                const logMessage = JSON.parse(event.data);
+                console.log('Got log:', logMessage);
+                console.log('Total logs:', this.logs.length);
+                this.logs.push(logMessage);
+                // Auto-scroll to bottom
+                this.$nextTick(() => {
+                    if (this.$refs.logContent) {
+                        this.$refs.logContent.scrollTop = this.$refs.logContent.scrollHeight;
+                    }
+                });
             });
 
             this.eventSource.onopen = () => {
@@ -231,6 +246,23 @@ createApp({
 
         getTeamTextColor(teamId) {
             return this.teamTextColors[teamId] || '#000000';
+        },
+
+        clearLogs() {
+            this.logs = [];
+        },
+
+        getLogLevelClass(log) {
+            if (log.includes('ERROR')) {
+                return 'log-error';
+            } else if (log.includes('WARN')) {
+                return 'log-warn';
+            } else if (log.includes('INFO')) {
+                return 'log-info';
+            } else if (log.includes('DEBUG')) {
+                return 'log-debug';
+            }
+            return '';
         }
     },
 

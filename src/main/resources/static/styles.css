@@ -24,12 +24,31 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
-    padding-bottom: 60px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100vh;
 }
 
 #app {
-    max-width: 1400px;
-    margin: 0 auto;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main container for split-screen layout */
+.main-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Content panel (left side on desktop) */
+.content-panel {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Header */
@@ -41,7 +60,7 @@ body {
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 50;
 }
 
 .header h1 {
@@ -459,6 +478,29 @@ body {
 
 /* Tablet and Desktop Styles */
 @media (min-width: 768px) {
+    body {
+        overflow: auto;
+    }
+
+    /* Split-screen layout on desktop */
+    .main-container {
+        flex-direction: row;
+        height: 100vh;
+    }
+
+    .content-panel {
+        flex: 1;
+        max-width: 50%;
+    }
+
+    .log-panel {
+        display: flex !important;
+        flex-direction: column;
+        flex: 1;
+        max-width: 50%;
+        min-width: 0;
+    }
+
     .header h1 {
         font-size: 2rem;
     }
@@ -508,10 +550,115 @@ body {
     }
 }
 
+/* Log Panel Styles */
+.log-panel {
+    display: none; /* Hidden on mobile by default */
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    border-left: 2px solid var(--border-color);
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #252526;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.log-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #d4d4d4;
+}
+
+.btn-clear-logs {
+    padding: 0.5rem 1rem;
+    background-color: #d97066;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.btn-clear-logs:hover {
+    background-color: #c85e55;
+}
+
+.log-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.log-empty {
+    text-align: center;
+    color: #888;
+    padding: 2rem;
+    font-style: italic;
+}
+
+.log-entry {
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 2px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-left: 3px solid transparent;
+}
+
+.log-entry.log-error {
+    color: #f48771;
+    border-left-color: #f48771;
+    background-color: rgba(244, 135, 113, 0.1);
+}
+
+.log-entry.log-warn {
+    color: #dcdcaa;
+    border-left-color: #dcdcaa;
+    background-color: rgba(220, 220, 170, 0.1);
+}
+
+.log-entry.log-info {
+    color: #4ec9b0;
+    border-left-color: #4ec9b0;
+}
+
+.log-entry.log-debug {
+    color: #9cdcfe;
+    border-left-color: #9cdcfe;
+}
+
+/* Scrollbar styling for log content */
+.log-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.log-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.log-content::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 4px;
+}
+
+.log-content::-webkit-scrollbar-thumb:hover {
+    background: #4e4e4e;
+}
+
 /* Print Styles */
 @media print {
     .controls-section,
-    .connection-status {
+    .connection-status,
+    .log-panel {
         display: none;
     }
 }
