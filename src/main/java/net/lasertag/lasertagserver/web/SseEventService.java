@@ -20,23 +20,23 @@ public class SseEventService {
 		emitters.add(emitter);
 
 		emitter.onCompletion(() -> {
-			log.info("SSE emitter completed");
-			emitters.remove(emitter);
+			removeEmitter(emitter);
 		});
 
 		emitter.onTimeout(() -> {
-			log.info("SSE emitter timed out");
-			emitters.remove(emitter);
+			removeEmitter(emitter);
 		});
 
 		emitter.onError(e -> {
-			log.error("SSE emitter error");
-			emitter.complete();
-			emitters.remove(emitter);
+			removeEmitter(emitter);
 		});
 
 		log.info("New SSE client connected. Total clients: {}", emitters.size());
 		return emitter;
+	}
+
+	private void removeEmitter(SseEmitter emitter) {
+		emitters.remove(emitter);
 	}
 
 	public void sendGameIsPlaying(boolean isPlaying) {
@@ -74,7 +74,7 @@ public class SseEventService {
 						.name(eventName)
 						.data(jsonData));
 				} catch (IOException e) {
-					log.error("Failed to send SSE event to client", e);
+					log.debug("Failed to send SSE event to client (disconnected): {}", e.getMessage());
 					deadEmitters.add(emitter);
 				}
 			}

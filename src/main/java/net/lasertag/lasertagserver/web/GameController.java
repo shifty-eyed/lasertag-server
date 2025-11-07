@@ -2,6 +2,7 @@ package net.lasertag.lasertagserver.web;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.model.Actor;
@@ -12,10 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
+@Slf4j
 public class GameController {
 
 	private final ActorRegistry actorRegistry;
@@ -107,6 +110,11 @@ public class GameController {
 		sseEventService.sendDispensersUpdate(webAdminConsole.getDispensersMap());
 		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
+	}
+
+	@ExceptionHandler(IOException.class)
+	public void handleIOException(IOException e) {
+		log.warn("Client disconnected: {}", e.getMessage());
 	}
 
 	// DTOs
