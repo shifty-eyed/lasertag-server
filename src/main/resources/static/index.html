@@ -14,9 +14,11 @@
             <div class="content-panel">
         <!-- Header with game controls -->
         <header class="header">
-            <h1>🎯 Laser Tag Server</h1>
-            <div class="status-banner" :class="gameState.playing ? 'status-playing' : 'status-idle'">
-                {{ gameState.playing ? formatTime(gameState.timeLeftSeconds) : 'Idle' }}
+            <div class="header-content">
+                <h1>🎯 Laser Tag Server</h1>
+                <div class="status-banner" :class="'status-' + gameStatus">
+                    {{ gameState.playing ? formatTime(gameState.timeLeftSeconds) : gameStatusText }}
+                </div>
             </div>
         </header>
 
@@ -279,10 +281,6 @@
             </div>
         </section>
 
-        <!-- Connection Status -->
-        <div class="connection-status" :class="{ 'connected': connected, 'disconnected': !connected }">
-            {{ connected ? '🟢 Connected' : '🔴 Disconnected' }}
-        </div>
             </div>
             <!-- End of left panel -->
 

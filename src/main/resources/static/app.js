@@ -61,6 +61,24 @@ createApp({
         },
         sortedTeamScores() {
             return this.gameState.teamScores || {};
+        },
+        gameStatus() {
+            if (!this.connected) {
+                return 'disconnected';
+            }
+            return this.gameState.playing ? 'game' : 'idle';
+        },
+        gameStatusText() {
+            switch (this.gameStatus) {
+                case 'disconnected':
+                    return '🔴 Disconnected';
+                case 'game':
+                    return '🎮 Game Active';
+                case 'idle':
+                    return '🟢 Idle';
+                default:
+                    return 'Unknown';
+            }
         }
     },
 

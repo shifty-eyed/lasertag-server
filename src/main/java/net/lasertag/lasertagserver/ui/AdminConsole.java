@@ -13,7 +13,7 @@ import net.lasertag.lasertagserver.model.Messaging;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.stereotype.Component;
 
-@Component
+//@Component
 public class AdminConsole {
 
 	private JTextField filedTimeLimit;

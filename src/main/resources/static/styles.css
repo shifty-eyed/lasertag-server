@@ -56,16 +56,23 @@ body {
     background: linear-gradient(135deg, #8b9dc3 0%, #9b8fb5 100%);
     color: white;
     padding: 1rem;
-    text-align: center;
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
     z-index: 50;
 }
 
+.header-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
 .header h1 {
     font-size: 1.5rem;
-    margin-bottom: 0.5rem;
+    margin: 0;
 }
 
 .status-banner {
@@ -77,13 +84,18 @@ body {
     min-width: 150px;
 }
 
-.status-playing {
+.status-game {
     background-color: var(--primary-color);
     animation: pulse 2s infinite;
 }
 
 .status-idle {
-    background-color: #666;
+    background-color: #7eb581;
+}
+
+.status-disconnected {
+    background-color: #d97066;
+    animation: blink 1s infinite;
 }
 
 @keyframes pulse {
@@ -438,34 +450,6 @@ body {
     gap: 1rem;
 }
 
-/* Connection Status */
-.connection-status {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 0.75rem;
-    text-align: center;
-    font-weight: 600;
-    font-size: 0.9rem;
-    z-index: 1000;
-}
-
-.connection-status.connected {
-    background-color: #7eb581;
-    color: white;
-}
-
-.connection-status.disconnected {
-    background-color: #d97066;
-    color: white;
-    animation: blink 1s infinite;
-}
-
-@keyframes blink {
-    0%, 50%, 100% { opacity: 1; }
-    25%, 75% { opacity: 0.7; }
-}
 
 /* Responsive Utilities */
 .mobile-only {
@@ -658,7 +642,6 @@ body {
 /* Print Styles */
 @media print {
     .controls-section,
-    .connection-status,
     .log-panel {
         display: none;
     }
