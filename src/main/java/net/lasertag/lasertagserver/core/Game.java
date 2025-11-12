@@ -2,12 +2,10 @@ package net.lasertag.lasertagserver.core;
 
 import lombok.Getter;
 import net.lasertag.lasertagserver.model.*;
-import net.lasertag.lasertagserver.ui.AdminConsole;
 import net.lasertag.lasertagserver.ui.WebAdminConsole;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +23,6 @@ public class Game implements GameEventsListener {
 
 	private final ActorRegistry actorRegistry;
 	private final UdpServer udpServer;
-	private final AdminConsole adminConsole;
 	private final WebAdminConsole webAdminConsole;
 	private final ScheduledExecutorService scheduler =
 		Executors.newScheduledThreadPool(2, new DaemonThreadFactory("DaemonScheduler"));
@@ -38,17 +35,12 @@ public class Game implements GameEventsListener {
 	private int timeLeftSeconds = 0;
 
 	public Game(ActorRegistry actorRegistry, UdpServer udpServer, 
-				@Autowired(required = false) AdminConsole adminConsole,
-				@Autowired(required = false) WebAdminConsole webAdminConsole) {
+				WebAdminConsole webAdminConsole) {
 		this.actorRegistry = actorRegistry;
 		this.udpServer = udpServer;
-		this.adminConsole = adminConsole;
 		this.webAdminConsole = webAdminConsole;
 		udpServer.setGameEventsListener(this);
 		
-		if (adminConsole != null) {
-			adminConsole.setGameEventsListener(this);
-		}
 		if (webAdminConsole != null) {
 			webAdminConsole.setGameEventsListener(this);
 		}
@@ -173,18 +165,12 @@ public class Game implements GameEventsListener {
 	}
 
 	private void refreshConsoleUI(boolean isPlaying) {
-		if (adminConsole != null) {
-			adminConsole.refreshUI(isPlaying);
-		}
 		if (webAdminConsole != null) {
 			webAdminConsole.refreshUI(isPlaying);
 		}
 	}
 
 	private void updateConsoleGameTime(int timeLeft) {
-		if (adminConsole != null) {
-			adminConsole.updateGameTimeStatus(timeLeft);
-		}
 		if (webAdminConsole != null) {
 			webAdminConsole.updateGameTimeLeft(timeLeft);
 		}

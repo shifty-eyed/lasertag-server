@@ -2,14 +2,15 @@
 :root {
     --primary-color: #6ba56e;
     --danger-color: #d97066;
-    --bg-color: #f5f5f5;
-    --card-bg: #ffffff;
-    --text-color: #333333;
-    --border-color: #dddddd;
-    --online-color: #e3f2f7;
-    --offline-color: #e8dfd6;
-    --shadow: 0 2px 4px rgba(0,0,0,0.1);
-    --shadow-hover: 0 4px 8px rgba(0,0,0,0.15);
+    --bg-color: #1a1d23;
+    --card-bg: #24282f;
+    --text-color: #e4e6eb;
+    --border-color: #3a3f47;
+    --online-color: #2d4a3e;
+    --online-highlight: #4a8f5e;
+    --offline-color: #2a2625;
+    --shadow: 0 2px 4px rgba(0,0,0,0.3);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,0.5);
 }
 
 /* Reset and Base Styles */
@@ -53,7 +54,7 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, #8b9dc3 0%, #9b8fb5 100%);
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     color: white;
     padding: 1rem;
     box-shadow: var(--shadow);
@@ -64,9 +65,9 @@ body {
 
 .header-content {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1.5rem;
+    justify-content: right;
+    align-items: right;
+    gap: 2.5rem;
     flex-wrap: wrap;
 }
 
@@ -134,6 +135,8 @@ body {
     border-radius: 4px;
     font-size: 1rem;
     min-height: 44px;
+    background-color: #2f3640;
+    color: var(--text-color);
 }
 
 .checkbox-group {
@@ -234,7 +237,7 @@ body {
 .players-section h2 {
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: #8b9dc3;
+    color: #a7b5d4;
 }
 
 .players-container {
@@ -265,12 +268,14 @@ body {
 
 .player-online {
     background-color: var(--online-color);
-    border-color: #a8c9d4;
+    border: 2px solid var(--online-highlight);
+    box-shadow: 0 0 10px rgba(74, 143, 94, 0.3);
 }
 
 .player-offline {
     background-color: var(--offline-color);
-    border-color: #d4c4b3;
+    border: 2px solid #3a3028;
+    opacity: 0.6;
 }
 
 .player-card-header {
@@ -295,13 +300,14 @@ body {
 }
 
 .badge-online {
-    background-color: #7eb581;
+    background-color: var(--online-highlight);
     color: white;
+    font-weight: bold;
 }
 
 .badge-offline {
-    background-color: #999;
-    color: white;
+    background-color: #666;
+    color: #aaa;
 }
 
 .player-card-body {
@@ -319,7 +325,7 @@ body {
 .player-field label {
     font-size: 0.9rem;
     font-weight: 500;
-    color: #666;
+    color: #9aa0a6;
 }
 
 .player-field input,
@@ -329,13 +335,15 @@ body {
     border-radius: 4px;
     font-size: 1rem;
     min-height: 44px;
+    background-color: #2f3640;
+    color: var(--text-color);
 }
 
 .player-stats {
     display: flex;
     gap: 1rem;
     padding: 0.75rem;
-    background-color: rgba(0,0,0,0.05);
+    background-color: rgba(0,0,0,0.3);
     border-radius: 4px;
 }
 
@@ -347,7 +355,7 @@ body {
 .stat-label {
     display: block;
     font-size: 0.85rem;
-    color: #666;
+    color: #9aa0a6;
     margin-bottom: 0.25rem;
 }
 
@@ -381,7 +389,7 @@ body {
 }
 
 .players-table th {
-    background-color: #8b9dc3;
+    background-color: #2c3e50;
     color: white;
     font-weight: 600;
     position: sticky;
@@ -389,7 +397,11 @@ body {
 }
 
 .players-table tr:hover {
-    background-color: rgba(139, 157, 195, 0.1);
+    background-color: rgba(74, 143, 94, 0.15);
+}
+
+.players-table tr.player-online:hover {
+    background-color: rgba(74, 143, 94, 0.25);
 }
 
 .players-table input,
@@ -399,6 +411,8 @@ body {
     border-radius: 4px;
     font-size: 0.95rem;
     width: 100%;
+    background-color: #2f3640;
+    color: var(--text-color);
 }
 
 .players-table input[type="number"] {
@@ -413,7 +427,7 @@ body {
 .dispensers-section h2 {
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: #8b9dc3;
+    color: #a7b5d4;
 }
 
 .dispensers-container {
@@ -433,12 +447,12 @@ body {
 .dispenser-panel h3 {
     font-size: 1.2rem;
     margin-bottom: 0.75rem;
-    color: #9b8fb5;
+    color: #a7b5d4;
 }
 
 .dispenser-online-list {
     padding: 0.75rem;
-    background-color: rgba(139, 157, 195, 0.1);
+    background-color: rgba(74, 143, 94, 0.15);
     border-radius: 4px;
     margin-bottom: 1rem;
     font-size: 0.95rem;
