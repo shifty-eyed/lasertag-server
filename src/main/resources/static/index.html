@@ -29,7 +29,7 @@
                 <input 
                     type="number" 
                     id="timeLimit" 
-                    v-model.number="gameState.timeLimitMinutes" 
+                    v-model.number="settings.general.timeLimitMinutes" 
                     :disabled="gameState.playing"
                     min="1"
                     max="60">
@@ -40,7 +40,7 @@
                 <input 
                     type="number" 
                     id="fragLimit" 
-                    v-model.number="gameState.fragLimit" 
+                    v-model.number="settings.general.fragLimit" 
                     :disabled="gameState.playing"
                     min="1"
                     max="100">
@@ -50,7 +50,7 @@
                 <label>
                     <input 
                         type="checkbox" 
-                        v-model="gameState.teamPlay" 
+                        v-model="settings.general.teamPlay" 
                         :disabled="gameState.playing">
                     Team Play
                 </label>
@@ -73,7 +73,7 @@
         </section>
 
         <!-- Team Scores -->
-        <section v-if="gameState.teamPlay && gameState.teamScores && Object.keys(gameState.teamScores).length > 0" class="team-scores">
+        <section v-if="settings.general.teamPlay && gameState.teamScores && Object.keys(gameState.teamScores).length > 0" class="team-scores">
             <div 
                 v-for="(score, teamId) in sortedTeamScores" 
                 :key="teamId"
@@ -229,7 +229,7 @@
                             <label>Timeout (sec):</label>
                             <input 
                                 type="number" 
-                                v-model.number="dispenserSettings.health.timeout" 
+                                v-model.number="settings.dispensers.health.timeout" 
                                 @blur="updateDispensers('health')"
                                 min="1"
                                 placeholder="60">
@@ -238,7 +238,7 @@
                             <label>Amount:</label>
                             <input 
                                 type="number" 
-                                v-model.number="dispenserSettings.health.amount" 
+                                v-model.number="settings.dispensers.health.amount" 
                                 @blur="updateDispensers('health')"
                                 min="1"
                                 placeholder="40">
@@ -258,7 +258,7 @@
                             <label>Timeout (sec):</label>
                             <input 
                                 type="number" 
-                                v-model.number="dispenserSettings.ammo.timeout" 
+                                v-model.number="settings.dispensers.ammo.timeout" 
                                 @blur="updateDispensers('ammo')"
                                 min="1"
                                 placeholder="60">
@@ -267,7 +267,7 @@
                             <label>Amount:</label>
                             <input 
                                 type="number" 
-                                v-model.number="dispenserSettings.ammo.amount" 
+                                v-model.number="settings.dispensers.ammo.amount" 
                                 @blur="updateDispensers('ammo')"
                                 min="1"
                                 placeholder="40">

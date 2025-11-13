@@ -9,9 +9,6 @@ createApp({
             gameState: {
                 playing: false,
                 timeLeftSeconds: 0,
-                teamPlay: false,
-                fragLimit: 10,
-                timeLimitMinutes: 15,
                 teamScores: {}
             },
 
@@ -22,14 +19,22 @@ createApp({
                 ammo: []
             },
 
-            dispenserSettings: {
-                health: {
-                    timeout: 60,
-                    amount: 40
+            settings: {
+                general: {
+                    fragLimit: 10,
+                    teamPlay: false,
+                    timeLimitMinutes: 15
                 },
-                ammo: {
-                    timeout: 30,
-                    amount: 20
+                players: {},
+                dispensers: {
+                    health: {
+                        timeout: 60,
+                        amount: 40
+                    },
+                    ammo: {
+                        timeout: 60,
+                        amount: 40
+                    }
                 }
             },
 
@@ -63,6 +68,12 @@ createApp({
                 return 'disconnected';
             }
             return this.gameState.playing ? 'game' : 'idle';
+        },
+        dispenserSettings() {
+            return this.settings.dispensers || {
+                health: { timeout: 60, amount: 40 },
+                ammo: { timeout: 60, amount: 40 }
+            };
         },
         gameStatusText() {
             switch (this.gameStatus) {
@@ -127,6 +138,12 @@ createApp({
                 console.log('Got dispensers:', this.dispensers);
             });
 
+            this.eventSource.addEventListener('settings', (event) => {
+                const settings = JSON.parse(event.data);
+                this.settings = settings;
+                console.log('Got settings:', this.settings);
+            });
+
             this.eventSource.addEventListener('log', (event) => {
                 const logMessage = JSON.parse(event.data);
                 console.log('Got log:', logMessage);
@@ -160,6 +177,19 @@ createApp({
         },
 
         // API calls
+        async fetchSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                if (response.ok) {
+                    const settings = await response.json();
+                    this.settings = settings;
+                    console.log('Fetched settings:', this.settings);
+                }
+            } catch (error) {
+                console.error('Error fetching settings:', error);
+            }
+        },
+
         async startGame() {
             try {
                 const response = await fetch('/api/game/start', {
@@ -168,9 +198,9 @@ createApp({
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        timeLimit: this.gameState.timeLimitMinutes,
-                        fragLimit: this.gameState.fragLimit,
-                        teamPlay: this.gameState.teamPlay
+                        timeLimit: this.settings.general.timeLimitMinutes,
+                        fragLimit: this.settings.general.fragLimit,
+                        teamPlay: this.settings.general.teamPlay
                     })
                 });
                 
@@ -229,7 +259,7 @@ createApp({
         },
 
         async updateDispensers(type) {
-            const settings = this.dispenserSettings[type];
+            const settings = this.settings.dispensers[type];
             
             // Only send if at least one value is set
             if (!settings.timeout && !settings.amount) {
@@ -296,6 +326,8 @@ createApp({
     },
 
     mounted() {
+        // Fetch initial settings
+        this.fetchSettings();
         // Connect to SSE (initial data is sent automatically)
         this.connectSSE();
     },

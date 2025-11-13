@@ -5,8 +5,8 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.core.GameEventsListener;
+import net.lasertag.lasertagserver.core.GameSettings;
 import net.lasertag.lasertagserver.model.Actor;
-import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +14,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api")
@@ -23,12 +24,14 @@ public class GameController {
 	private final ActorRegistry actorRegistry;
 	private final GameEventsListener gameEventsListener;
 	private final SseEventService sseEventService;
+	private final GameSettings gameSettings;
 
 	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, 
-						  SseEventService sseEventService) {
+						  SseEventService sseEventService, GameSettings gameSettings) {
 		this.actorRegistry = actorRegistry;
 		this.gameEventsListener = gameEventsListener;
 		this.sseEventService = sseEventService;
+		this.gameSettings = gameSettings;
 	}
 
 	@GetMapping("/events")
@@ -39,14 +42,25 @@ public class GameController {
 		try {
 			sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
 			sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
+			// Send initial settings
+			sseEventService.sendSettingsUpdate(gameSettings.getAllSettings());
 		} catch (Exception e) {}
 		
 		return emitter;
 	}
 
+	@GetMapping("/settings")
+	public ResponseEntity<Map<String, Object>> getSettings() {
+		return ResponseEntity.ok(gameSettings.getAllSettings());
+	}
+
 	@PostMapping("/game/start")
 	public ResponseEntity<Map<String, String>> startGame(@RequestBody StartGameRequest request) {
+		gameSettings.setTimeLimitMinutes(request.getTimeLimit());
+		gameSettings.setFragLimit(request.getFragLimit());
 		boolean teamPlay = request.isTeamPlay() && actorRegistry.getTeamScores().size() > 1;
+		gameSettings.setTeamPlay(teamPlay);
+		gameSettings.syncToActors(actorRegistry);
 		gameEventsListener.eventConsoleStartGame(request.getTimeLimit(), request.getFragLimit(), teamPlay);
 		return ResponseEntity.ok(Map.of("status", "Game started"));
 	}
@@ -58,24 +72,14 @@ public class GameController {
 	}
 
 	@PutMapping("/players/{id}")
-	public ResponseEntity<Player> updatePlayer(@PathVariable int id, @RequestBody UpdatePlayerRequest request) {
+	public ResponseEntity<Player> updatePlayer(@PathVariable int id, @RequestBody GameSettings.PlayerSettings request) {
+		GameSettings.PlayerSettings existingSettings = gameSettings.getPlayerSettings(id);
+		boolean nameUpdated = existingSettings != null && !Objects.equals(existingSettings.getName(), request.getName());
+
+		gameSettings.setPlayerSettings(id, request);
+		gameSettings.syncToActors(actorRegistry);
+
 		Player player = actorRegistry.getPlayerById(id);
-		
-		boolean nameUpdated = false;
-		if (request.getName() != null) {
-			player.setName(request.getName());
-			nameUpdated = true;
-		}
-		if (request.getTeamId() != null) {
-			player.setTeamId(request.getTeamId());
-		}
-		if (request.getDamage() != null) {
-			player.setDamage(request.getDamage());
-		}
-		if (request.getBulletsMax() != null) {
-			player.setBulletsMax(request.getBulletsMax());
-		}
-		
 		gameEventsListener.onPlayerDataUpdated(player, nameUpdated);
 		
 		return ResponseEntity.ok(player);
@@ -86,20 +90,20 @@ public class GameController {
 		@PathVariable String type, 
 		@RequestBody UpdateDispenserRequest request
 	) {
-		Actor.Type dispenserType = type.equalsIgnoreCase("health") 
-			? Actor.Type.HEALTH_DISPENSER 
-			: Actor.Type.AMMO_DISPENSER;
+		Actor.Type dispenserType = switch (type.toLowerCase()) {
+			case "health" -> Actor.Type.HEALTH;
+			case "ammo" -> Actor.Type.AMMO;
+			default -> throw new IllegalArgumentException("Unknown dispenser type: " + type);
+		};
 		
-		actorRegistry.streamByType(dispenserType).forEach(actor -> {
-			Dispenser dispenser = (Dispenser) actor;
-			if (request.getTimeout() != null && request.getTimeout() > 0) {
-				dispenser.setDispenseTimeoutSec(request.getTimeout());
-			}
-			if (request.getAmount() != null && request.getAmount() > 0) {
-				dispenser.setAmount(request.getAmount());
-			}
-		});
+		if (request.getTimeout() != null && request.getTimeout() > 0) {
+			gameSettings.setDispenserTimeout(dispenserType, request.getTimeout());
+		}
+		if (request.getAmount() != null && request.getAmount() > 0) {
+			gameSettings.setDispenserAmount(dispenserType, request.getAmount());
+		}
 		
+		gameSettings.syncToActors(actorRegistry);
 		gameEventsListener.onDispenserSettingsUpdated();
 		
 		// Broadcast updated dispenser state to web clients
@@ -120,15 +124,6 @@ public class GameController {
 		private int timeLimit;
 		private int fragLimit;
 		private boolean teamPlay;
-	}
-
-	@Getter
-	@Setter
-	public static class UpdatePlayerRequest {
-		private String name;
-		private Integer teamId;
-		private Integer damage;
-		private Integer bulletsMax;
 	}
 
 	@Getter

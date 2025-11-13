@@ -62,6 +62,10 @@ public class SseEventService {
 		sendEvent("dispensers", dispensers);
 	}
 
+	public void sendSettingsUpdate(Object settings) {
+		sendEvent("settings", settings);
+	}
+
 	public void sendLogMessage(String logMessage) {
 		sendEvent("log", logMessage);
 	}

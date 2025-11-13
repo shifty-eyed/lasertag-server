@@ -24,21 +24,20 @@ public class Game implements GameEventsListener {
 	private final ActorRegistry actorRegistry;
 	private final UdpServer udpServer;
 	private final WebAdminConsole webAdminConsole;
+	private final GameSettings gameSettings;
 	private final ScheduledExecutorService scheduler =
 		Executors.newScheduledThreadPool(2, new DaemonThreadFactory("DaemonScheduler"));
 
 		
 	private volatile boolean isGamePlaying = false;
-	private int fragLimit = 0;
-	private boolean teamPlay = false;
-	private int timeLimitMinutes = 0;
 	private int timeLeftSeconds = 0;
 
 	public Game(ActorRegistry actorRegistry, UdpServer udpServer, 
-				WebAdminConsole webAdminConsole) {
+				WebAdminConsole webAdminConsole, GameSettings gameSettings) {
 		this.actorRegistry = actorRegistry;
 		this.udpServer = udpServer;
 		this.webAdminConsole = webAdminConsole;
+		this.gameSettings = gameSettings;
 		udpServer.setGameEventsListener(this);
 		
 		if (webAdminConsole != null) {
@@ -58,8 +57,8 @@ public class Game implements GameEventsListener {
 				hitByPlayer.setScore(hitByPlayer.getScore() + 1);
 				udpServer.sendEventToClient(MessageType.YOU_SCORED, hitByPlayer, (byte)player.getId());
 				player.setAssignedRespawnPoint(actorRegistry.getRandomRespawnPointId());
-				var vitalScore = teamPlay ? actorRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
-				if (vitalScore >= fragLimit) {
+				var vitalScore = gameSettings.isTeamPlay() ? actorRegistry.getTeamScores().get(hitByPlayer.getTeamId()) : hitByPlayer.getScore();
+				if (vitalScore >= gameSettings.getFragLimit()) {
 					eventConsoleEndGame();
 				}
 			} else {
@@ -67,9 +66,9 @@ public class Game implements GameEventsListener {
 			}
 			sendPlayerValuesSnapshotToAll(false);
 		} else if (type == MessageType.GOT_HEALTH.id()) {
-			useDispenser(player, Actor.Type.HEALTH_DISPENSER, message.getExtraValue(), MessageType.GIVE_HEALTH_TO_PLAYER);
+			useDispenser(player, Actor.Type.HEALTH, message.getExtraValue(), MessageType.GIVE_HEALTH_TO_PLAYER);
 		} else if (type == MessageType.GOT_AMMO.id()) {
-			useDispenser(player, Actor.Type.AMMO_DISPENSER, message.getExtraValue(), MessageType.GIVE_AMMO_TO_PLAYER);
+			useDispenser(player, Actor.Type.AMMO, message.getExtraValue(), MessageType.GIVE_AMMO_TO_PLAYER);
 		}
 
 		refreshConsoleUI(isGamePlaying);
@@ -84,10 +83,10 @@ public class Game implements GameEventsListener {
 	@Override
 	public void eventConsoleStartGame(int timeMinutes, int fragLimit, boolean teamPlay) {
 		log.info("Starting game with timeLimitMinutes={}, fragLimit={}, teamPlay={}", timeMinutes, fragLimit, teamPlay);
-		this.timeLimitMinutes = timeMinutes;
-		this.fragLimit = fragLimit;
-		this.teamPlay = teamPlay;
-		timeLeftSeconds = timeLimitMinutes * 60;
+		gameSettings.setTimeLimitMinutes(timeMinutes);
+		gameSettings.setFragLimit(fragLimit);
+		gameSettings.setTeamPlay(teamPlay);
+		timeLeftSeconds = gameSettings.getTimeLimitMinutes() * 60;
 
 		var respawnPointsIt = actorRegistry.shuffledRespawnPointIds().iterator();
 		actorRegistry.streamPlayers().forEach(player -> {
@@ -100,7 +99,7 @@ public class Game implements GameEventsListener {
 		sendPlayerValuesSnapshotToAll(true);
 		actorRegistry.streamPlayers().forEach(player -> {
 			if (player.isOnline()) {
-				udpServer.sendEventToClient(MessageType.GAME_START, player, (byte) (teamPlay ? 1 : 0), (byte) timeLimitMinutes);
+				udpServer.sendEventToClient(MessageType.GAME_START, player, (byte) (gameSettings.isTeamPlay() ? 1 : 0), (byte) gameSettings.getTimeLimitMinutes());
 			}
 		});
 		
@@ -113,7 +112,7 @@ public class Game implements GameEventsListener {
 
 		Player leadPlayer = actorRegistry.getLeadPlayer();
 		int leadTeam = actorRegistry.getLeadTeam();
-		int winner = teamPlay ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(-1);
+		int winner = gameSettings.isTeamPlay() ? leadTeam : Optional.ofNullable(leadPlayer).map(Player::getId).orElse(-1);
 		for (Player player : actorRegistry.getPlayers()) {
 			udpServer.sendEventToClient(MessageType.GAME_OVER, player, (byte)winner);
 		}
@@ -161,7 +160,7 @@ public class Game implements GameEventsListener {
 	}
 
 	private void sendPlayerValuesSnapshotToAll(boolean includeNames) {
-		udpServer.sendStatsToAll(includeNames, isGamePlaying, teamPlay, timeLeftSeconds);
+		udpServer.sendStatsToAll(includeNames, isGamePlaying, gameSettings.isTeamPlay(), timeLeftSeconds);
 	}
 
 	private void refreshConsoleUI(boolean isPlaying) {
