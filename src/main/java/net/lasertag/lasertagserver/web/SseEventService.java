@@ -62,10 +62,6 @@ public class SseEventService {
 		sendEvent("dispensers", dispensers);
 	}
 
-	public void sendTeamScoresUpdate(Object teamScores) {
-		sendEvent("teamScores", teamScores);
-	}
-
 	public void sendLogMessage(String logMessage) {
 		sendEvent("log", logMessage);
 	}

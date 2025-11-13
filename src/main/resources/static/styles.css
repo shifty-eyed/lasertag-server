@@ -365,6 +365,12 @@ body {
     font-weight: bold;
 }
 
+.score-value,
+.health-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+}
+
 .player-equipment {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -398,6 +404,15 @@ body {
 
 .players-table tr:hover {
     background-color: rgba(74, 143, 94, 0.15);
+}
+
+.players-table tbody tr {
+    font-weight: 700;
+}
+
+.players-table td.score-cell,
+.players-table td.health-cell {
+    font-size: 1.35rem;
 }
 
 .players-table tr.player-online:hover {

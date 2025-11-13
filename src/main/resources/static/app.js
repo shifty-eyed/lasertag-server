@@ -96,8 +96,28 @@ createApp({
             });
 
             this.eventSource.addEventListener('players', (event) => {
-                this.players = JSON.parse(event.data);
-                console.log('Got players:', this.players);
+				this.players = JSON.parse(event.data);
+				console.log('Got players:', this.players);
+
+				const teamTotals = this.players.reduce((acc, player) => {
+					const teamId = player.teamId;
+					if (teamId === null || teamId === undefined || teamId < 0) {
+						return acc;
+					}
+
+					if (!Object.prototype.hasOwnProperty.call(acc, teamId)) {
+						acc[teamId] = 0;
+					}
+					acc[teamId] += player.score || 0;
+					return acc;
+				}, {});
+
+				const sortedTeamTotals = Object.fromEntries(
+					Object.entries(teamTotals).sort((a, b) => b[1] - a[1])
+				);
+
+				this.gameState.teamScores = sortedTeamTotals;
+				console.log('Computed teamScores:', this.gameState.teamScores);
             });
 
             this.eventSource.addEventListener('timeLeft', (event) => {
@@ -109,11 +129,6 @@ createApp({
             this.eventSource.addEventListener('dispensers', (event) => {
                 this.dispensers = JSON.parse(event.data);
                 console.log('Got dispensers:', this.dispensers);
-            });
-
-            this.eventSource.addEventListener('teamScores', (event) => {
-                this.gameState.teamScores = JSON.parse(event.data);
-                console.log('Got teamScores:', this.gameState.teamScores);
             });
 
             this.eventSource.addEventListener('log', (event) => {

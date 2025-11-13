@@ -106,17 +106,16 @@
                                 <input 
                                     type="text" 
                                     v-model="player.name" 
-                                    @blur="updatePlayer(player)"
-                                    :disabled="gameState.playing">
+                                    @blur="updatePlayer(player)">
                             </div>
                             <div class="player-stats">
                                 <div class="stat">
                                     <span class="stat-label">Score:</span>
-                                    <span class="stat-value">{{ player.score }}</span>
+                                    <span class="stat-value score-value">{{ player.score }}</span>
                                 </div>
                                 <div class="stat">
                                     <span class="stat-label">Health:</span>
-                                    <span class="stat-value">{{ player.health }}</span>
+                                    <span class="stat-value health-value">{{ player.health }}</span>
                                 </div>
                             </div>
                             <div class="player-field">
@@ -124,7 +123,6 @@
                                 <select 
                                     v-model.number="player.teamId" 
                                     @change="updatePlayer(player)"
-                                    :disabled="gameState.playing"
                                     :style="{ backgroundColor: getTeamColor(player.teamId), color: getTeamTextColor(player.teamId) }">
                                     <option v-for="(name, id) in teamNames" :key="id" :value="id">{{ name }}</option>
                                 </select>
@@ -136,7 +134,6 @@
                                         type="number" 
                                         v-model.number="player.bulletsMax" 
                                         @blur="updatePlayer(player)"
-                                        :disabled="gameState.playing"
                                         min="1"
                                         max="100">
                                 </div>
@@ -146,7 +143,6 @@
                                         type="number" 
                                         v-model.number="player.damage" 
                                         @blur="updatePlayer(player)"
-                                        :disabled="gameState.playing"
                                         min="1"
                                         max="100">
                                 </div>
@@ -180,17 +176,15 @@
                                     <input 
                                         type="text" 
                                         v-model="player.name" 
-                                        @blur="updatePlayer(player)"
-                                        :disabled="gameState.playing">
+                                        @blur="updatePlayer(player)">
                                 </td>
-                                <td>{{ player.score }}</td>
-                                <td>{{ player.health }}</td>
+                                <td class="score-cell">{{ player.score }}</td>
+                                <td class="health-cell">{{ player.health }}</td>
                                 <td>
                                     <input 
                                         type="number" 
                                         v-model.number="player.bulletsMax" 
                                         @blur="updatePlayer(player)"
-                                        :disabled="gameState.playing"
                                         min="1" max="100">
                                 </td>
                                 <td>
@@ -198,19 +192,21 @@
                                         type="number" 
                                         v-model.number="player.damage" 
                                         @blur="updatePlayer(player)"
-                                        :disabled="gameState.playing"
                                         min="1" max="100">
                                 </td>
                                 <td>
                                     <select 
                                         v-model.number="player.teamId" 
                                         @change="updatePlayer(player)"
-                                        :disabled="gameState.playing"
                                         :style="{ backgroundColor: getTeamColor(player.teamId), color: getTeamTextColor(player.teamId) }">
                                         <option v-for="(name, id) in teamNames" :key="id" :value="id">{{ name }}</option>
                                     </select>
                                 </td>
-                                <td>{{ player.assignedRespawnPoint >= 0 ? player.assignedRespawnPoint : '-' }}</td>
+                                <td>
+                                    <span v-if="player.online && player.health === 0 && player.assignedRespawnPoint >= 0">
+                                        {{ player.assignedRespawnPoint }}
+                                    </span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>

@@ -42,7 +42,6 @@ public class GameController {
 		try {
 			sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
 			sseEventService.sendDispensersUpdate(webAdminConsole.getDispensersMap());
-			sseEventService.sendTeamScoresUpdate(actorRegistry.getTeamScores());
 		} catch (Exception e) {}
 		
 		return emitter;

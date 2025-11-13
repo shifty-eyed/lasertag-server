@@ -33,17 +33,11 @@ public class WebAdminConsole {
 		sseEventService.sendGameIsPlaying(isPlaying);
 		broadcastPlayers();
 		broadcastDispensers();
-		broadcastTeamScores();
 	}
 
 	private void broadcastPlayers() {
 		List<Player> players = actorRegistry.getPlayers();
 		sseEventService.sendPlayersUpdate(players);
-	}
-
-	private void broadcastTeamScores() {
-		Map<Integer, Integer> teamScores = actorRegistry.getTeamScores();
-		sseEventService.sendTeamScoresUpdate(teamScores);
 	}
 
 	private void broadcastDispensers() {
