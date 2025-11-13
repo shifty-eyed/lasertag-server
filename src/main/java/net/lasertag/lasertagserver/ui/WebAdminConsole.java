@@ -3,17 +3,12 @@ package net.lasertag.lasertagserver.ui;
 import lombok.Setter;
 import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.core.GameEventsListener;
-import net.lasertag.lasertagserver.model.Actor;
-import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Player;
 import net.lasertag.lasertagserver.web.SseEventService;
 
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Component
 public class WebAdminConsole {
@@ -41,24 +36,7 @@ public class WebAdminConsole {
 	}
 
 	private void broadcastDispensers() {
-		sseEventService.sendDispensersUpdate(getDispensersMap());
-	}
-
-	public Map<String, List<Dispenser>> getDispensersMap() {
-		Map<String, List<Dispenser>> dispensers = new HashMap<>();
-		
-		List<Dispenser> healthDispensers = actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)
-			.map(actor -> (Dispenser) actor)
-			.collect(Collectors.toList());
-		
-		List<Dispenser> ammoDispensers = actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER)
-			.map(actor -> (Dispenser) actor)
-			.collect(Collectors.toList());
-		
-		dispensers.put("health", healthDispensers);
-		dispensers.put("ammo", ammoDispensers);
-		
-		return dispensers;
+		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 	}
 
 	public void updateGameTimeLeft(int timeLeftSeconds) {

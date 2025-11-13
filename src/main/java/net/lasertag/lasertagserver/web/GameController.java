@@ -8,7 +8,6 @@ import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Dispenser;
 import net.lasertag.lasertagserver.model.Player;
-import net.lasertag.lasertagserver.ui.WebAdminConsole;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -24,14 +23,12 @@ public class GameController {
 	private final ActorRegistry actorRegistry;
 	private final GameEventsListener gameEventsListener;
 	private final SseEventService sseEventService;
-	private final WebAdminConsole webAdminConsole;
 
 	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, 
-						  SseEventService sseEventService, WebAdminConsole webAdminConsole) {
+						  SseEventService sseEventService) {
 		this.actorRegistry = actorRegistry;
 		this.gameEventsListener = gameEventsListener;
 		this.sseEventService = sseEventService;
-		this.webAdminConsole = webAdminConsole;
 	}
 
 	@GetMapping("/events")
@@ -41,7 +38,7 @@ public class GameController {
 		// Send initial state immediately
 		try {
 			sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
-			sseEventService.sendDispensersUpdate(webAdminConsole.getDispensersMap());
+			sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 		} catch (Exception e) {}
 		
 		return emitter;
@@ -106,7 +103,7 @@ public class GameController {
 		gameEventsListener.onDispenserSettingsUpdated();
 		
 		// Broadcast updated dispenser state to web clients
-		sseEventService.sendDispensersUpdate(webAdminConsole.getDispensersMap());
+		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
 	}

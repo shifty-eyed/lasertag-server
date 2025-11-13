@@ -50,14 +50,10 @@ createApp({
 
     computed: {
         onlineHealthDispensers() {
-            return this.dispensers.health
-                .filter(d => d.online)
-                .map(d => d.id);
+            return this.dispensers.health || [];
         },
         onlineAmmoDispensers() {
-            return this.dispensers.ammo
-                .filter(d => d.online)
-                .map(d => d.id);
+            return this.dispensers.ammo || [];
         },
         sortedTeamScores() {
             return this.gameState.teamScores || {};

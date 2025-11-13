@@ -114,4 +114,23 @@ public class ActorRegistry {
 		return respawnPointsIds.get(new Random().nextInt(respawnPointsIds.size()));
 	}
 
+	public Map<String, List<Integer>> getOnlineDispensers() {
+		Map<String, List<Integer>> dispensers = new HashMap<>();
+		
+		List<Integer> healthDispenserIds = streamByType(Actor.Type.HEALTH_DISPENSER)
+			.filter(Actor::isOnline)
+			.map(Actor::getId)
+			.toList();
+		
+		List<Integer> ammoDispenserIds = streamByType(Actor.Type.AMMO_DISPENSER)
+			.filter(Actor::isOnline)
+			.map(Actor::getId)
+			.toList();
+		
+		dispensers.put("health", healthDispenserIds);
+		dispensers.put("ammo", ammoDispenserIds);
+		
+		return dispensers;
+	}
+
 }
