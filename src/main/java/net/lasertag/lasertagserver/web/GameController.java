@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.GameSettings;
+import net.lasertag.lasertagserver.core.UdpServer;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.http.ResponseEntity;
@@ -23,15 +24,17 @@ public class GameController {
 
 	private final ActorRegistry actorRegistry;
 	private final GameEventsListener gameEventsListener;
+	private final UdpServer udpServer;
 	private final SseEventService sseEventService;
 	private final GameSettings gameSettings;
 
 	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, 
-						  SseEventService sseEventService, GameSettings gameSettings) {
+						  SseEventService sseEventService, GameSettings gameSettings, UdpServer udpServer) {
 		this.actorRegistry = actorRegistry;
 		this.gameEventsListener = gameEventsListener;
 		this.sseEventService = sseEventService;
 		this.gameSettings = gameSettings;
+		this.udpServer = udpServer;
 	}
 
 	@GetMapping("/events")
@@ -90,23 +93,12 @@ public class GameController {
 		@PathVariable String type, 
 		@RequestBody UpdateDispenserRequest request
 	) {
-		Actor.Type dispenserType = switch (type.toLowerCase()) {
-			case "health" -> Actor.Type.HEALTH;
-			case "ammo" -> Actor.Type.AMMO;
-			default -> throw new IllegalArgumentException("Unknown dispenser type: " + type);
-		};
-		
-		if (request.getTimeout() != null && request.getTimeout() > 0) {
-			gameSettings.setDispenserTimeout(dispenserType, request.getTimeout());
-		}
-		if (request.getAmount() != null && request.getAmount() > 0) {
-			gameSettings.setDispenserAmount(dispenserType, request.getAmount());
-		}
+		Actor.Type dispenserType = Actor.Type.valueOf(type);
+		gameSettings.setDispenserTimeout(dispenserType, request.getTimeout());
+		gameSettings.setDispenserAmount(dispenserType, request.getAmount());
 		
 		gameSettings.syncToActors(actorRegistry);
-		gameEventsListener.onDispenserSettingsUpdated();
-		
-		// Broadcast updated dispenser state to web clients
+		udpServer.sendSettingsToAllDispensers();
 		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));

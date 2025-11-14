@@ -230,7 +230,7 @@
                             <input 
                                 type="number" 
                                 v-model.number="settings.dispensers.health.timeout" 
-                                @blur="updateDispensers('health')"
+                                @blur="updateDispensers('HEALTH')"
                                 min="1"
                                 placeholder="60">
                         </div>
@@ -239,7 +239,7 @@
                             <input 
                                 type="number" 
                                 v-model.number="settings.dispensers.health.amount" 
-                                @blur="updateDispensers('health')"
+                                @blur="updateDispensers('HEALTH')"
                                 min="1"
                                 placeholder="40">
                         </div>
@@ -259,7 +259,7 @@
                             <input 
                                 type="number" 
                                 v-model.number="settings.dispensers.ammo.timeout" 
-                                @blur="updateDispensers('ammo')"
+                                @blur="updateDispensers('AMMO')"
                                 min="1"
                                 placeholder="60">
                         </div>
@@ -268,7 +268,7 @@
                             <input 
                                 type="number" 
                                 v-model.number="settings.dispensers.ammo.amount" 
-                                @blur="updateDispensers('ammo')"
+                                @blur="updateDispensers('AMMO')"
                                 min="1"
                                 placeholder="40">
                         </div>

@@ -135,11 +135,6 @@ public class Game implements GameEventsListener {
 		refreshConsoleUI(isGamePlaying);
 	}
 
-	@Override
-	public void onDispenserSettingsUpdated() {
-		udpServer.sendSettingsToAllDispensers();
-	}
-
 	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
 	public void updateGameTime() {
 		if (isGamePlaying) {

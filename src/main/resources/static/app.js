@@ -183,7 +183,6 @@ createApp({
                 if (response.ok) {
                     const settings = await response.json();
                     this.settings = settings;
-                    console.log('Fetched settings:', this.settings);
                 }
             } catch (error) {
                 console.error('Error fetching settings:', error);
@@ -260,11 +259,6 @@ createApp({
 
         async updateDispensers(type) {
             const settings = this.settings.dispensers[type];
-            
-            // Only send if at least one value is set
-            if (!settings.timeout && !settings.amount) {
-                return;
-            }
 
             try {
                 const response = await fetch(`/api/dispensers/${type}`, {
@@ -281,8 +275,6 @@ createApp({
                 if (!response.ok) {
                     throw new Error('Failed to update dispensers');
                 }
-                
-                console.log(`${type} dispensers updated`);
             } catch (error) {
                 console.error('Error updating dispensers:', error);
                 alert('Failed to update dispensers');

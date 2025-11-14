@@ -16,5 +16,4 @@ public interface GameEventsListener {
 
 	void onPlayerDataUpdated(Player player, boolean isNameUpdated);
 
-	void onDispenserSettingsUpdated();
 }
