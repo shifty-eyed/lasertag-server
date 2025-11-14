@@ -176,19 +176,6 @@ createApp({
             };
         },
 
-        // API calls
-        async fetchSettings() {
-            try {
-                const response = await fetch('/api/settings');
-                if (response.ok) {
-                    const settings = await response.json();
-                    this.settings = settings;
-                }
-            } catch (error) {
-                console.error('Error fetching settings:', error);
-            }
-        },
-
         async startGame() {
             try {
                 const response = await fetch('/api/game/start', {
@@ -318,14 +305,10 @@ createApp({
     },
 
     mounted() {
-        // Fetch initial settings
-        this.fetchSettings();
-        // Connect to SSE (initial data is sent automatically)
         this.connectSSE();
     },
 
     beforeUnmount() {
-        // Clean up SSE connection
         if (this.eventSource) {
             this.eventSource.close();
         }

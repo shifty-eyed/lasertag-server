@@ -52,11 +52,6 @@ public class GameController {
 		return emitter;
 	}
 
-	@GetMapping("/settings")
-	public ResponseEntity<Map<String, Object>> getSettings() {
-		return ResponseEntity.ok(gameSettings.getAllSettings());
-	}
-
 	@PostMapping("/game/start")
 	public ResponseEntity<Map<String, String>> startGame(@RequestBody StartGameRequest request) {
 		gameSettings.setTimeLimitMinutes(request.getTimeLimit());
