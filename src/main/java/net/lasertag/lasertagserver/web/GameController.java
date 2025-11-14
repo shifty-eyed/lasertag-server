@@ -38,14 +38,12 @@ public class GameController {
 	}
 
 	@GetMapping("/events")
-	public SseEmitter streamEvents() {
+	public SseEmitter initEventStreaming() {
 		SseEmitter emitter = sseEventService.createEmitter();
 		
-		// Send initial state immediately
 		try {
 			sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
 			sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
-			// Send initial settings
 			sseEventService.sendSettingsUpdate(gameSettings.getAllSettings());
 		} catch (Exception e) {}
 		
