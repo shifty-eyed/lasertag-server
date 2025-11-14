@@ -2,7 +2,7 @@ package net.lasertag.lasertagserver.core;
 
 import lombok.Getter;
 import net.lasertag.lasertagserver.model.*;
-import net.lasertag.lasertagserver.ui.WebAdminConsole;
+import net.lasertag.lasertagserver.web.SseEventService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,7 @@ public class Game implements GameEventsListener {
 
 	private final ActorRegistry actorRegistry;
 	private final UdpServer udpServer;
-	private final WebAdminConsole webAdminConsole;
+	private final SseEventService sseEventService;
 	private final GameSettings gameSettings;
 	private final ScheduledExecutorService scheduler =
 		Executors.newScheduledThreadPool(2, new DaemonThreadFactory("DaemonScheduler"));
@@ -33,16 +33,13 @@ public class Game implements GameEventsListener {
 	private int timeLeftSeconds = 0;
 
 	public Game(ActorRegistry actorRegistry, UdpServer udpServer, 
-				WebAdminConsole webAdminConsole, GameSettings gameSettings) {
+				SseEventService sseEventService, GameSettings gameSettings) {
 		this.actorRegistry = actorRegistry;
 		this.udpServer = udpServer;
-		this.webAdminConsole = webAdminConsole;
+		this.sseEventService = sseEventService;
 		this.gameSettings = gameSettings;
 		udpServer.setGameEventsListener(this);
 		
-		if (webAdminConsole != null) {
-			webAdminConsole.setGameEventsListener(this);
-		}
 	}
 
 	@Override
@@ -159,16 +156,11 @@ public class Game implements GameEventsListener {
 	}
 
 	private void refreshConsoleUI(boolean isPlaying) {
-		if (webAdminConsole != null) {
-			webAdminConsole.refreshUI(isPlaying);
-		}
+		sseEventService.refreshUI(isPlaying);
 	}
 
 	private void updateConsoleGameTime(int timeLeft) {
-		if (webAdminConsole != null) {
-			webAdminConsole.updateGameTimeLeft(timeLeft);
-		}
+		sseEventService.sendGameTimeLeft(timeLeft);
 	}
-
 
 }

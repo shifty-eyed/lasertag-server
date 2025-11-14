@@ -3,6 +3,9 @@ package net.lasertag.lasertagserver.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import net.lasertag.lasertagserver.core.ActorRegistry;
+import net.lasertag.lasertagserver.core.GameSettings;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -16,10 +19,24 @@ public class SseEventService {
 	private final CopyOnWriteArrayList<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
+	private final ActorRegistry actorRegistry;
+	private final GameSettings gameSettings;
+
+	public SseEventService(ActorRegistry actorRegistry, GameSettings gameSettings) {
+		this.actorRegistry = actorRegistry;
+		this.gameSettings = gameSettings;
+	}
+
 	@PostConstruct
 	public void init() {
-		// Register this service with the SseLogAppender
 		SseLogAppender.setSseEventService(this);
+	}
+
+	public void refreshUI(boolean isPlaying) {
+		sendGameIsPlaying(isPlaying);
+		sendPlayersUpdate(actorRegistry.getPlayers());
+		sendDispensersUpdate(actorRegistry.getOnlineDispensers());
+		sendSettingsUpdate(gameSettings.getAllSettings());
 	}
 
 	public SseEmitter createEmitter() {
