@@ -6,6 +6,18 @@
         </encoder>
     </appender>
 
+    <appender name="SSE_LOG" class="net.lasertag.lasertagserver.web.SseLogAppender">
+    </appender>
+
+    <!-- Capture all logs from UdpServer and Game classes -->
+    <logger name="net.lasertag.lasertagserver.core.UdpServer" level="DEBUG" additivity="true">
+        <appender-ref ref="SSE_LOG"/>
+    </logger>
+
+    <logger name="net.lasertag.lasertagserver.core.Game" level="DEBUG" additivity="true">
+        <appender-ref ref="SSE_LOG"/>
+    </logger>
+
     <logger name="net.lasertag" level="INFO"/>
 
     <root level="INFO">

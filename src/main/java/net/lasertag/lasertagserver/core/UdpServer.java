@@ -27,6 +27,7 @@ public class UdpServer {
 	private GameEventsListener gameEventsListener;
 
 	private final ActorRegistry actorRegistry;
+	private final GameSettings gameSettings;
 	private final Map<Actor, Long> lastPingTime;
 
 	private final long pingTimeout = 10000;
@@ -37,10 +38,11 @@ public class UdpServer {
 
 	private final ThreadPoolTaskExecutor daemonExecutor;
 
-	public UdpServer(ActorRegistry actorRegistry, ThreadPoolTaskExecutor daemonExecutor) {
+	public UdpServer(ActorRegistry actorRegistry, GameSettings gameSettings, ThreadPoolTaskExecutor daemonExecutor) {
 		this.port = 9878;
 		this.devicePort = 1234;
 		this.actorRegistry = actorRegistry;
+		this.gameSettings = gameSettings;
 		this.daemonExecutor = daemonExecutor;
 		this.lastPingTime = new HashMap<>();
 	}
@@ -109,6 +111,9 @@ public class UdpServer {
 				if (actor.getType() == Actor.Type.PLAYER) {
 					gameEventsListener.onPlayerJoinedOrLeft();
 				}
+				if (actor.getType() == Actor.Type.HEALTH || actor.getType() == Actor.Type.AMMO) {
+					sendSettingsToAllDispensers();
+				}
 			}
 			lastPingTime.put(actor, System.currentTimeMillis());
 
@@ -159,9 +164,11 @@ public class UdpServer {
 	}
 
 	public void sendSettingsToAllDispensers() {
-		Stream.concat(actorRegistry.streamByType(Actor.Type.AMMO_DISPENSER), actorRegistry.streamByType(Actor.Type.HEALTH_DISPENSER)).forEach(actor -> {
-			var dispenser = (Dispenser) actor;
-			sendEventToClient(MessageType.DISPENSER_SET_TIMEOUT, dispenser, (byte)(dispenser.getDispenseTimeoutSec() / 10));// to pack as 1 byte
+		Stream.concat(actorRegistry.streamByType(Actor.Type.AMMO), actorRegistry.streamByType(Actor.Type.HEALTH))
+		.filter(actor -> actor.isOnline())
+		.forEach(actor -> {
+			int timeout = gameSettings.getDispenserSettings(actor.getType()).getTimeout();
+			sendEventToClient(MessageType.DISPENSER_SET_TIMEOUT, actor, (byte)(timeout / 10));// to pack as 1 byte
 		});
 	}
 

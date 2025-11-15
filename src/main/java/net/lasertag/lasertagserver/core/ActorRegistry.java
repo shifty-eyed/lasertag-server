@@ -27,8 +27,8 @@ public class ActorRegistry {
 			respawnPointsIds.add(i);
 		}
 		for (int i = 0; i < 4; i++) {
-			actors.add(new Dispenser(i, Actor.Type.AMMO_DISPENSER));
-			actors.add(new Dispenser(i, Actor.Type.HEALTH_DISPENSER));
+			actors.add(new Dispenser(i, Actor.Type.AMMO));
+			actors.add(new Dispenser(i, Actor.Type.HEALTH));
 		}
 	}
 
@@ -61,9 +61,9 @@ public class ActorRegistry {
 		var id = message.getActorId();
 		var type = message.getTypeId();
 		if (type == MessageType.HEALTH_DISPENSER_PING.id()) {
-			return getActorByTypeAndId(Actor.Type.HEALTH_DISPENSER, id);
+			return getActorByTypeAndId(Actor.Type.HEALTH, id);
 		} else if (type == MessageType.AMMO_DISPENSER_PING.id()) {
-			return getActorByTypeAndId(Actor.Type.AMMO_DISPENSER, id);
+			return getActorByTypeAndId(Actor.Type.AMMO, id);
 		} else {
 			return getActorByTypeAndId(Actor.Type.PLAYER, id);
 		}
@@ -112,6 +112,25 @@ public class ActorRegistry {
 
 	public int getRandomRespawnPointId() {
 		return respawnPointsIds.get(new Random().nextInt(respawnPointsIds.size()));
+	}
+
+	public Map<String, List<Integer>> getOnlineDispensers() {
+		Map<String, List<Integer>> dispensers = new HashMap<>();
+		
+		List<Integer> healthDispenserIds = streamByType(Actor.Type.HEALTH)
+			.filter(Actor::isOnline)
+			.map(Actor::getId)
+			.toList();
+		
+		List<Integer> ammoDispenserIds = streamByType(Actor.Type.AMMO)
+			.filter(Actor::isOnline)
+			.map(Actor::getId)
+			.toList();
+		
+		dispensers.put("health", healthDispenserIds);
+		dispensers.put("ammo", ammoDispenserIds);
+		
+		return dispensers;
 	}
 
 }

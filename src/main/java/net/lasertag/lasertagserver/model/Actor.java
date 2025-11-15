@@ -11,8 +11,8 @@ public abstract class Actor {
 
 	public enum Type {
 		PLAYER,
-		HEALTH_DISPENSER,
-		AMMO_DISPENSER
+		HEALTH,
+		AMMO
 	}
 
 	private final int id;
@@ -44,6 +44,6 @@ public abstract class Actor {
 
 	@Override
 	public String toString() {
-		return type.name() + "-" + id;
+		return "Actor[" + type.name() + "-" + id + "]";
 	}
 }
