@@ -2,12 +2,14 @@ package net.lasertag.lasertagserver.core;
 
 import jakarta.annotation.PostConstruct;
 import lombok.Setter;
+import net.lasertag.lasertagserver.LanIpUtils;
 import net.lasertag.lasertagserver.model.*;
 
 import static net.lasertag.lasertagserver.model.Messaging.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
@@ -47,10 +49,18 @@ public class UdpServer {
 		this.lastPingTime = new HashMap<>();
 	}
 
+	@org.springframework.context.event.EventListener(ApplicationReadyEvent.class)
+	public void logLanIp() {
+		String webConsoleUrl = "http://" + LanIpUtils.findLanIp().orElse("<unknown>") + ":8080";
+		log.info("Web console is available at: {}", webConsoleUrl);
+	}
+
 	@PostConstruct
 	public void init() {
 		daemonExecutor.execute(this::startUdpServer);
 		Runtime.getRuntime().addShutdownHook(new Thread(this::stopUdpServer));
+		
+		
 	}
 
 	private void startUdpServer() {
