@@ -65,8 +65,8 @@ body {
 
 .header-content {
     display: flex;
-    justify-content: right;
-    align-items: right;
+    justify-content: space-between;
+    align-items: center;
     gap: 2.5rem;
     flex-wrap: wrap;
 }
@@ -495,15 +495,15 @@ body {
         overflow: auto;
     }
 
-    /* Split-screen layout on desktop */
+    /* Full-width layout on desktop (log panel removed from main page) */
     .main-container {
-        flex-direction: row;
+        flex-direction: column;
         height: 100vh;
     }
 
     .content-panel {
         flex: 1;
-        max-width: 50%;
+        max-width: 100%;
     }
 
     .log-panel {
@@ -666,6 +666,22 @@ body {
 
 .log-content::-webkit-scrollbar-thumb:hover {
     background: #4e4e4e;
+}
+
+/* Logs Page Styles */
+.logs-page-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.logs-page-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    overflow: hidden;
 }
 
 /* Print Styles */
