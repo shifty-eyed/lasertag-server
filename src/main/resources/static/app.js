@@ -49,7 +49,12 @@ createApp({
             teamColors: ['#DC143C', '#1E90FF', '#32CD32', '#FFD700', '#FF00FF', '#00CED1'],
             teamTextColors: ['#FFFFFF', '#FFFFFF', '#000000', '#000000', '#FFFFFF', '#000000'],
 
-            logs: []
+            logs: [],
+
+            editingField: {
+                playerId: null,
+                fieldName: null
+            }
         };
     },
 
@@ -103,28 +108,47 @@ createApp({
             });
 
             this.eventSource.addEventListener('players', (event) => {
-				this.players = JSON.parse(event.data);
-				console.log('Got players:', this.players);
+                const incomingPlayers = JSON.parse(event.data);
+                console.log('Got players:', incomingPlayers);
 
-				const teamTotals = this.players.reduce((acc, player) => {
-					const teamId = player.teamId;
-					if (teamId === null || teamId === undefined || teamId < 0) {
-						return acc;
-					}
+                const updatedPlayers = incomingPlayers.map(incomingPlayer => {
+                    const existingPlayer = this.players.find(p => p.id === incomingPlayer.id);
+                    
+                    if (existingPlayer) {
+                        const merged = { ...incomingPlayer };
+                        if (this.editingField.playerId === incomingPlayer.id) {
+                            const editedField = this.editingField.fieldName;
+                            if (editedField && existingPlayer.hasOwnProperty(editedField)) {
+                                merged[editedField] = existingPlayer[editedField];
+                            }
+                        }
+                        return merged;
+                    } else {
+                        return incomingPlayer;
+                    }
+                });
 
-					if (!Object.prototype.hasOwnProperty.call(acc, teamId)) {
-						acc[teamId] = 0;
-					}
-					acc[teamId] += player.score || 0;
-					return acc;
-				}, {});
+                this.players = updatedPlayers;
 
-				const sortedTeamTotals = Object.fromEntries(
-					Object.entries(teamTotals).sort((a, b) => b[1] - a[1])
-				);
+                const teamTotals = this.players.reduce((acc, player) => {
+                    const teamId = player.teamId;
+                    if (teamId === null || teamId === undefined || teamId < 0) {
+                        return acc;
+                    }
 
-				this.gameState.teamScores = sortedTeamTotals;
-				console.log('Computed teamScores:', this.gameState.teamScores);
+                    if (!Object.prototype.hasOwnProperty.call(acc, teamId)) {
+                        acc[teamId] = 0;
+                    }
+                    acc[teamId] += player.score || 0;
+                    return acc;
+                }, {});
+
+                const sortedTeamTotals = Object.fromEntries(
+                    Object.entries(teamTotals).sort((a, b) => b[1] - a[1])
+                );
+
+                this.gameState.teamScores = sortedTeamTotals;
+                console.log('Computed teamScores:', this.gameState.teamScores);
             });
 
             this.eventSource.addEventListener('timeLeft', (event) => {
@@ -301,6 +325,18 @@ createApp({
                 return 'log-debug';
             }
             return '';
+        },
+
+        onPlayerFieldFocus(player, fieldName) {
+            this.editingField.playerId = player.id;
+            this.editingField.fieldName = fieldName;
+        },
+
+        onPlayerFieldBlur(player, fieldName) {
+            if (this.editingField.playerId === player.id && this.editingField.fieldName === fieldName) {
+                this.editingField.playerId = null;
+                this.editingField.fieldName = null;
+            }
         }
     },
 

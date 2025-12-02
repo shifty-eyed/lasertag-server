@@ -1,0 +1,14 @@
+Server:
+Saving the game settings as presets
+Unit tests / integration tests
+setting dispensers doesn't work
+
+
+esp32:
+uart wired connection to vest
+
+
+
+Common:
+Refactor game types: dm, team dm, ctf
+
