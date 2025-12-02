@@ -177,7 +177,7 @@ public class UdpServer {
 		Stream.concat(actorRegistry.streamByType(Actor.Type.AMMO), actorRegistry.streamByType(Actor.Type.HEALTH))
 		.filter(actor -> actor.isOnline())
 		.forEach(actor -> {
-			int timeout = gameSettings.getDispenserSettings(actor.getType()).getTimeout();
+			int timeout = gameSettings.getCurrent().getDispenserSettings(actor.getType()).getTimeout();
 			sendEventToClient(MessageType.DISPENSER_SET_TIMEOUT, actor, (byte)(timeout / 10));// to pack as 1 byte
 		});
 	}

@@ -1,139 +1,107 @@
 package net.lasertag.lasertagserver.core;
 
-import lombok.Data;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Dispenser;
-import net.lasertag.lasertagserver.model.Messaging;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Stream;
 
 @Component
-@Data
+@Slf4j
 public class GameSettings {
 
-    @Data
-	public static class PlayerSettings {
-		private String name;
-		private Integer bulletsMax;
-		private Integer damage;
-		private Integer teamId;
-	}
+    private static final String PRESETS_DIR = "presets";
+    private static final String JSON_EXTENSION = ".json";
 
-	@Data
-	public static class DispenserSettings {
-		private int timeout;
-		private int amount;
+    private final ObjectMapper objectMapper;
 
-		public DispenserSettings(int timeout, int amount) {
-			this.timeout = timeout;
-			this.amount = amount;
-		}
-	}
+    @Getter
+    private GameSettingsPreset current;
 
-	private int fragLimit = 10;
-	private boolean teamPlay = false;
-	private int timeLimitMinutes = 15;
+    public GameSettings() {
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        this.current = new GameSettingsPreset();
+    }
 
-	private final Map<Integer, PlayerSettings> playerSettings = new HashMap<>();
+    public void savePreset(String fileName) throws IOException {
+        Path presetsPath = Paths.get(PRESETS_DIR);
+        if (!Files.exists(presetsPath)) {
+            Files.createDirectories(presetsPath);
+            log.info("Created presets directory: {}", presetsPath.toAbsolutePath());
+        }
 
-	private final DispenserSettings healthDispenserSettings = new DispenserSettings(60, 40);
-	private final DispenserSettings ammoDispenserSettings = new DispenserSettings(60, 40);
+        String normalizedFileName = normalizeFileName(fileName);
+        Path filePath = presetsPath.resolve(normalizedFileName);
+        objectMapper.writeValue(filePath.toFile(), current);
+        log.info("Saved preset to: {}", filePath.toAbsolutePath());
+    }
 
-	public GameSettings() {
-        //Default settings
-		for (int i = 0; i < ActorRegistry.PLAYER_COUNT; i++) {
-			PlayerSettings settings = new PlayerSettings();
-			settings.setName("Player-%d".formatted(i));
-			settings.setDamage(10);
-			settings.setBulletsMax(40);
-			settings.setTeamId(Messaging.TEAM_YELLOW);
-			playerSettings.put(i, settings);
-		}
-	}
+    public void loadPreset(String fileName) throws IOException {
+        String normalizedFileName = normalizeFileName(fileName);
+        Path filePath = Paths.get(PRESETS_DIR).resolve(normalizedFileName);
 
-	public Map<String, Object> getAllSettings() {
-		Map<String, Object> allSettings = new HashMap<>();
-        Map<String, Object> general = new HashMap<>();
-		general.put("fragLimit", fragLimit);
-		general.put("teamPlay", teamPlay);
-		general.put("timeLimitMinutes", timeLimitMinutes);
-		allSettings.put("general", general);
-		allSettings.put("players", getAllPlayerSettings());
-		allSettings.put("dispensers", Map.of(
-			"health", Map.of(
-				"timeout", healthDispenserSettings.getTimeout(),
-				"amount", healthDispenserSettings.getAmount()
-			),
-			"ammo", Map.of(
-				"timeout", ammoDispenserSettings.getTimeout(),
-				"amount", ammoDispenserSettings.getAmount()
-			)
-		));
-		return allSettings;
-	}
+        if (!Files.exists(filePath)) {
+            throw new IOException("Preset file not found: " + filePath.toAbsolutePath());
+        }
 
-	// Player settings methods
-	public PlayerSettings getPlayerSettings(int playerId) {
-		return playerSettings.get(playerId);
-	}
+        current = objectMapper.readValue(filePath.toFile(), GameSettingsPreset.class);
+        log.info("Loaded preset from: {}", filePath.toAbsolutePath());
+    }
 
-	public Map<Integer, PlayerSettings> getAllPlayerSettings() {
-		return new HashMap<>(playerSettings);
-	}
+    public List<String> listPresets() throws IOException {
+        Path presetsPath = Paths.get(PRESETS_DIR);
+        if (!Files.exists(presetsPath)) {
+            return List.of();
+        }
 
-	public void setPlayerSettings(int playerId, PlayerSettings newSettings) {
-		if (newSettings == null) {
-			throw new IllegalArgumentException("Player settings cannot be null");
-		}
+        try (Stream<Path> files = Files.list(presetsPath)) {
+            return files
+                .filter(path -> path.toString().endsWith(JSON_EXTENSION))
+                .map(path -> path.getFileName().toString().replace(JSON_EXTENSION, ""))
+                .toList();
+        }
+    }
 
-		PlayerSettings storedSettings = playerSettings.computeIfAbsent(playerId, id -> new PlayerSettings());
-		storedSettings.setName(newSettings.getName());
-		storedSettings.setBulletsMax(newSettings.getBulletsMax());
-		storedSettings.setDamage(newSettings.getDamage());
-		storedSettings.setTeamId(newSettings.getTeamId());
-	}
+    private String normalizeFileName(String fileName) {
+        if (!fileName.endsWith(JSON_EXTENSION)) {
+            return fileName + JSON_EXTENSION;
+        }
+        return fileName;
+    }
 
-	// Dispenser settings methods
-	public DispenserSettings getDispenserSettings(Actor.Type type) {
-		if (type == Actor.Type.HEALTH) {
-			return healthDispenserSettings;
-		} else if (type == Actor.Type.AMMO) {
-			return ammoDispenserSettings;
-		}
-		throw new IllegalArgumentException("Unknown dispenser type: " + type);
-	}
-
-	public void setDispenserTimeout(Actor.Type type, int timeout) {
-		getDispenserSettings(type).setTimeout(timeout);
-	}
-
-	public void setDispenserAmount(Actor.Type type, int amount) {
-		getDispenserSettings(type).setAmount(amount);
-	}
-
-	public void syncToActors(ActorRegistry actorRegistry) {
-		actorRegistry.streamPlayers().forEach(player -> {
-			PlayerSettings settings = playerSettings.get(player.getId());
+    public void syncToActors(ActorRegistry actorRegistry) {
+        actorRegistry.streamPlayers().forEach(player -> {
+            GameSettingsPreset.PlayerSettings settings = current.getPlayerSettings(player.getId());
             player.setName(settings.getName());
             player.setBulletsMax(settings.getBulletsMax());
             player.setDamage(settings.getDamage());
             player.setTeamId(settings.getTeamId());
-		});
+        });
 
-		actorRegistry.streamByType(Actor.Type.HEALTH).forEach(actor -> {
-			Dispenser dispenser = (Dispenser) actor;
-			dispenser.setDispenseTimeoutSec(healthDispenserSettings.getTimeout());
-			dispenser.setAmount(healthDispenserSettings.getAmount());
-		});
+        actorRegistry.streamByType(Actor.Type.HEALTH).forEach(actor -> {
+            Dispenser dispenser = (Dispenser) actor;
+            var healthSettings = current.getHealthDispenserSettings();
+            dispenser.setDispenseTimeoutSec(healthSettings.getTimeout());
+            dispenser.setAmount(healthSettings.getAmount());
+        });
 
-		actorRegistry.streamByType(Actor.Type.AMMO).forEach(actor -> {
-			Dispenser dispenser = (Dispenser) actor;
-			dispenser.setDispenseTimeoutSec(ammoDispenserSettings.getTimeout());
-			dispenser.setAmount(ammoDispenserSettings.getAmount());
-		});
-	}
+        actorRegistry.streamByType(Actor.Type.AMMO).forEach(actor -> {
+            Dispenser dispenser = (Dispenser) actor;
+            var ammoSettings = current.getAmmoDispenserSettings();
+            dispenser.setDispenseTimeoutSec(ammoSettings.getTimeout());
+            dispenser.setAmount(ammoSettings.getAmount());
+        });
+    }
 
 }
 

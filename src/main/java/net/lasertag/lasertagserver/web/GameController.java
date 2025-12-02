@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.core.GameEventsListener;
+import net.lasertag.lasertagserver.core.GameSettingsPreset;
 import net.lasertag.lasertagserver.core.GameSettings;
 import net.lasertag.lasertagserver.core.UdpServer;
 import net.lasertag.lasertagserver.model.Actor;
@@ -44,7 +45,7 @@ public class GameController {
 		try {
 			sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
 			sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
-			sseEventService.sendSettingsUpdate(gameSettings.getAllSettings());
+			sseEventService.sendSettingsUpdate(gameSettings.getCurrent().getAllSettings());
 		} catch (Exception e) {}
 		
 		return emitter;
@@ -52,10 +53,10 @@ public class GameController {
 
 	@PostMapping("/game/start")
 	public ResponseEntity<Map<String, String>> startGame(@RequestBody StartGameRequest request) {
-		gameSettings.setTimeLimitMinutes(request.getTimeLimit());
-		gameSettings.setFragLimit(request.getFragLimit());
+		gameSettings.getCurrent().setTimeLimitMinutes(request.getTimeLimit());
+		gameSettings.getCurrent().setFragLimit(request.getFragLimit());
 		boolean teamPlay = request.isTeamPlay() && actorRegistry.getTeamScores().size() > 1;
-		gameSettings.setTeamPlay(teamPlay);
+		gameSettings.getCurrent().setTeamPlay(teamPlay);
 		gameSettings.syncToActors(actorRegistry);
 		gameEventsListener.eventConsoleStartGame(request.getTimeLimit(), request.getFragLimit(), teamPlay);
 		return ResponseEntity.ok(Map.of("status", "Game started"));
@@ -68,11 +69,11 @@ public class GameController {
 	}
 
 	@PutMapping("/players/{id}")
-	public ResponseEntity<Player> updatePlayer(@PathVariable int id, @RequestBody GameSettings.PlayerSettings request) {
-		GameSettings.PlayerSettings existingSettings = gameSettings.getPlayerSettings(id);
+	public ResponseEntity<Player> updatePlayer(@PathVariable int id, @RequestBody GameSettingsPreset.PlayerSettings request) {
+		GameSettingsPreset.PlayerSettings existingSettings = gameSettings.getCurrent().getPlayerSettings(id);
 		boolean nameUpdated = existingSettings != null && !Objects.equals(existingSettings.getName(), request.getName());
 
-		gameSettings.setPlayerSettings(id, request);
+		gameSettings.getCurrent().setPlayerSettings(id, request);
 		gameSettings.syncToActors(actorRegistry);
 
 		Player player = actorRegistry.getPlayerById(id);
@@ -87,8 +88,8 @@ public class GameController {
 		@RequestBody UpdateDispenserRequest request
 	) {
 		Actor.Type dispenserType = Actor.Type.valueOf(type);
-		gameSettings.setDispenserTimeout(dispenserType, request.getTimeout());
-		gameSettings.setDispenserAmount(dispenserType, request.getAmount());
+		gameSettings.getCurrent().setDispenserTimeout(dispenserType, request.getTimeout());
+		gameSettings.getCurrent().setDispenserAmount(dispenserType, request.getAmount());
 		
 		gameSettings.syncToActors(actorRegistry);
 		udpServer.sendSettingsToAllDispensers();
@@ -102,7 +103,6 @@ public class GameController {
 		log.warn("Client disconnected: {}", e.getMessage());
 	}
 
-	// DTOs
 	@Getter
 	@Setter
 	public static class StartGameRequest {
