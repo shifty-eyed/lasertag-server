@@ -10,26 +10,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Utility method for discovering the preferred LAN IP address of the current host.
- */
 public final class LanIpUtils {
 
 	private LanIpUtils() {
 		// utility class
 	}
 
-	/**
-	 * Find the preferred LAN IPv4 address as a string.
-	 * <p>
-	 * Preference order:
-	 * <ol>
-	 *   <li>First non-loopback IPv4 address starting with {@code 192.168.}</li>
-	 *   <li>Otherwise, first non-loopback IPv4 site-local address (10.x, 172.16–31.x, 192.168.x)</li>
-	 * </ol>
-	 *
-	 * @return optional string representation of the preferred LAN IP
-	 */
 	public static Optional<String> findLanIp() {
 		List<InetAddress> candidates = findCandidateIpv4Addresses();
 
@@ -40,7 +26,6 @@ public final class LanIpUtils {
 			}
 		}
 
-		// Fallback to first site-local candidate (list is already filtered)
 		if (!candidates.isEmpty()) {
 			return Optional.of(candidates.get(0).getHostAddress());
 		}

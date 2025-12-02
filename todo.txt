@@ -2,6 +2,7 @@ Server:
 Saving the game settings as presets
 Unit tests / integration tests
 setting dispensers doesn't work
+change team play to only have 2 colors - red and blue
 
 
 esp32:
