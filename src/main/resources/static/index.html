@@ -57,6 +57,32 @@
                 </label>
             </div>
 
+            <div class="control-group">
+                <label for="presetSelect">Preset:</label>
+                <select 
+                    id="presetSelect" 
+                    v-model="selectedPreset" 
+                    :disabled="gameState.playing">
+                    <option value="New">New...</option>
+                    <option v-for="preset in presets" :key="preset" :value="preset">{{ preset }}</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button 
+                    @click="loadPreset" 
+                    :disabled="gameState.playing || selectedPreset === 'New...'"
+                    class="btn btn-secondary">
+                    Load
+                </button>
+                <button 
+                    @click="savePreset" 
+                    :disabled="gameState.playing"
+                    class="btn btn-secondary">
+                    Save
+                </button>
+            </div>
+
             <div class="button-group">
                 <button 
                     @click="startGame" 

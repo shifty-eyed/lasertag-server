@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -96,6 +97,27 @@ public class GameController {
 		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
+	}
+
+	@GetMapping("/presets")
+	public List<String> listPresets() throws IOException {
+		return gameSettings.listPresets();
+	}
+
+	@PostMapping("/presets/{name}")
+	public ResponseEntity<Map<String, String>> savePreset(@PathVariable String name) throws IOException {
+		gameSettings.savePreset(name);
+		return ResponseEntity.ok(Map.of("status", "Preset saved"));
+	}
+
+	@PostMapping("/presets/{name}/load")
+	public ResponseEntity<Map<String, String>> loadPreset(@PathVariable String name) throws IOException {
+		gameSettings.loadPreset(name);
+		gameSettings.syncToActors(actorRegistry);
+		sseEventService.sendSettingsUpdate(gameSettings.getCurrent().getAllSettings());
+		sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
+		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
+		return ResponseEntity.ok(Map.of("status", "Preset loaded"));
 	}
 
 	@ExceptionHandler(IOException.class)

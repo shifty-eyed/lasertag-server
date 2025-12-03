@@ -54,7 +54,10 @@ createApp({
             editingField: {
                 playerId: null,
                 fieldName: null
-            }
+            },
+
+            presets: [],
+            selectedPreset: 'New...'
         };
     },
 
@@ -337,11 +340,74 @@ createApp({
                 this.editingField.playerId = null;
                 this.editingField.fieldName = null;
             }
+        },
+
+        async fetchPresets() {
+            try {
+                const response = await fetch('/api/presets');
+                if (response.ok) {
+                    this.presets = await response.json();
+                    console.log('Loaded presets:', this.presets);
+                }
+            } catch (error) {
+                console.error('Error fetching presets:', error);
+            }
+        },
+
+        async loadPreset() {
+            if (this.selectedPreset === 'New') {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/presets/${encodeURIComponent(this.selectedPreset)}/load`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load preset');
+                }
+                
+                console.log('Preset loaded:', this.selectedPreset);
+            } catch (error) {
+                console.error('Error loading preset:', error);
+                alert('Failed to load preset');
+            }
+        },
+
+        async savePreset() {
+            let presetName = this.selectedPreset;
+            
+            if (presetName === 'New') {
+                presetName = prompt('Enter preset name:');
+                if (!presetName || presetName.trim() === '') {
+                    return;
+                }
+                presetName = presetName.trim();
+            }
+
+            try {
+                const response = await fetch(`/api/presets/${encodeURIComponent(presetName)}`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save preset');
+                }
+                
+                console.log('Preset saved:', presetName);
+                await this.fetchPresets();
+                this.selectedPreset = presetName;
+            } catch (error) {
+                console.error('Error saving preset:', error);
+                alert('Failed to save preset');
+            }
         }
     },
 
     mounted() {
         this.connectSSE();
+        this.fetchPresets();
     },
 
     beforeUnmount() {
