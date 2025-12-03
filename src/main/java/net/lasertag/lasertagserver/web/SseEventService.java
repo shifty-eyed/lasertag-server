@@ -36,7 +36,7 @@ public class SseEventService {
 		sendGameIsPlaying(isPlaying);
 		sendPlayersUpdate(actorRegistry.getPlayers());
 		sendDispensersUpdate(actorRegistry.getOnlineDispensers());
-		sendSettingsUpdate(gameSettings.getCurrent().getAllSettings());
+		sendSettingsUpdate(gameSettings.getAllSettingsWithMetadata());
 	}
 
 	public SseEmitter createEmitter() {

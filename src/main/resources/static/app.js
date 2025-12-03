@@ -167,6 +167,9 @@ createApp({
 
             this.eventSource.addEventListener('settings', (event) => {
                 const settings = JSON.parse(event.data);
+                if (settings.presetName) {
+                    this.selectedPreset = settings.presetName;
+                }
                 this.settings = settings;
                 console.log('Got settings:', this.settings);
             });
@@ -355,7 +358,7 @@ createApp({
         },
 
         async loadPreset() {
-            if (this.selectedPreset === 'New') {
+            if (this.selectedPreset === 'New...') {
                 return;
             }
 
@@ -378,7 +381,7 @@ createApp({
         async savePreset() {
             let presetName = this.selectedPreset;
             
-            if (presetName === 'New') {
+            if (presetName === 'New...') {
                 presetName = prompt('Enter preset name:');
                 if (!presetName || presetName.trim() === '') {
                     return;

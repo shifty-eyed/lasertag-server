@@ -46,7 +46,7 @@ public class GameController {
 		try {
 			sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
 			sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
-			sseEventService.sendSettingsUpdate(gameSettings.getCurrent().getAllSettings());
+			sseEventService.sendSettingsUpdate(gameSettings.getAllSettingsWithMetadata());
 		} catch (Exception e) {}
 		
 		return emitter;
@@ -58,7 +58,7 @@ public class GameController {
 		gameSettings.getCurrent().setFragLimit(request.getFragLimit());
 		boolean teamPlay = request.isTeamPlay() && actorRegistry.getTeamScores().size() > 1;
 		gameSettings.getCurrent().setTeamPlay(teamPlay);
-		gameSettings.syncToActors(actorRegistry);
+		gameSettings.syncToActors();
 		gameEventsListener.eventConsoleStartGame(request.getTimeLimit(), request.getFragLimit(), teamPlay);
 		return ResponseEntity.ok(Map.of("status", "Game started"));
 	}
@@ -75,7 +75,7 @@ public class GameController {
 		boolean nameUpdated = existingSettings != null && !Objects.equals(existingSettings.getName(), request.getName());
 
 		gameSettings.getCurrent().setPlayerSettings(id, request);
-		gameSettings.syncToActors(actorRegistry);
+		gameSettings.syncToActors();
 
 		Player player = actorRegistry.getPlayerById(id);
 		gameEventsListener.onPlayerDataUpdated(player, nameUpdated);
@@ -92,7 +92,7 @@ public class GameController {
 		gameSettings.getCurrent().setDispenserTimeout(dispenserType, request.getTimeout());
 		gameSettings.getCurrent().setDispenserAmount(dispenserType, request.getAmount());
 		
-		gameSettings.syncToActors(actorRegistry);
+		gameSettings.syncToActors();
 		udpServer.sendSettingsToAllDispensers();
 		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 		
@@ -107,14 +107,14 @@ public class GameController {
 	@PostMapping("/presets/{name}")
 	public ResponseEntity<Map<String, String>> savePreset(@PathVariable String name) throws IOException {
 		gameSettings.savePreset(name);
+		sseEventService.sendSettingsUpdate(gameSettings.getAllSettingsWithMetadata());
 		return ResponseEntity.ok(Map.of("status", "Preset saved"));
 	}
 
 	@PostMapping("/presets/{name}/load")
 	public ResponseEntity<Map<String, String>> loadPreset(@PathVariable String name) throws IOException {
 		gameSettings.loadPreset(name);
-		gameSettings.syncToActors(actorRegistry);
-		sseEventService.sendSettingsUpdate(gameSettings.getCurrent().getAllSettings());
+		sseEventService.sendSettingsUpdate(gameSettings.getAllSettingsWithMetadata());
 		sseEventService.sendPlayersUpdate(actorRegistry.getPlayers());
 		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 		return ResponseEntity.ok(Map.of("status", "Preset loaded"));
