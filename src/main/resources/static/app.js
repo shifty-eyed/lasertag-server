@@ -100,7 +100,6 @@ createApp({
             return gameType === 'TEAM_DM' || gameType === 'CTF';
         },
         availableTeams() {
-            // For team-based modes, only Red and Blue are available
             if (this.isTeamBased) {
                 return {
                     0: 'Red',
@@ -115,6 +114,19 @@ createApp({
                 { value: 'TEAM_DM', label: 'TEAM_DM' },
                 { value: 'CTF', label: 'CTF' }
             ];
+        }
+    },
+
+    watch: {
+        'settings.general.gameType'() {
+             if (this.isTeamBased) {
+                this.players.forEach(player => {
+                    if (player.teamId !== 0 && player.teamId !== 1) {
+                        player.teamId = player.id % 2;
+                        this.updatePlayer(player);
+                    }
+                });
+             }
         }
     },
 
@@ -156,9 +168,6 @@ createApp({
 
                 const teamTotals = this.players.reduce((acc, player) => {
                     const teamId = player.teamId;
-                    if (teamId === null || teamId === undefined || teamId < 0) {
-                        return acc;
-                    }
 
                     if (!Object.prototype.hasOwnProperty.call(acc, teamId)) {
                         acc[teamId] = 0;
