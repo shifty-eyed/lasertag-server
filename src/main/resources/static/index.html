@@ -61,28 +61,41 @@
 
             <div class="control-group">
                 <label for="presetSelect">Preset:</label>
-                <select 
-                    id="presetSelect" 
-                    v-model="selectedPreset" 
-                    :disabled="gameState.playing">
-                    <option value="New">New...</option>
-                    <option v-for="preset in presets" :key="preset" :value="preset">{{ preset }}</option>
-                </select>
+                <div class="preset-controls">
+                    <select 
+                        id="presetSelect" 
+                        v-model="selectedPreset" 
+                        :disabled="gameState.playing">
+                        <option value="New">New...</option>
+                        <option v-for="preset in presets" :key="preset" :value="preset">{{ preset }}</option>
+                    </select>
+                    <button 
+                        @click="loadPreset" 
+                        :disabled="gameState.playing || selectedPreset === 'New...'"
+                        class="btn-icon"
+                        title="Load Preset">
+                        📥
+                    </button>
+                    <button 
+                        @click="savePreset" 
+                        :disabled="gameState.playing"
+                        class="btn-icon"
+                        title="Save Preset">
+                        💾
+                    </button>
+                </div>
             </div>
 
-            <div class="button-group">
-                <button 
-                    @click="loadPreset" 
-                    :disabled="gameState.playing || selectedPreset === 'New...'"
-                    class="btn btn-secondary">
-                    Load
-                </button>
-                <button 
-                    @click="savePreset" 
-                    :disabled="gameState.playing"
-                    class="btn btn-secondary">
-                    Save
-                </button>
+            <!-- Team Scores (moved to toolbar) -->
+            <div v-if="isTeamBased && sortedTeamScores && Object.keys(sortedTeamScores).length > 0" class="toolbar-scores">
+                <div 
+                    v-for="(score, teamId) in sortedTeamScores" 
+                    :key="teamId"
+                    class="toolbar-score-card"
+                    :style="{ backgroundColor: getTeamColor(teamId), color: getTeamTextColor(teamId) }">
+                    <div class="toolbar-team-name">{{ getTeamName(teamId) }}</div>
+                    <div class="toolbar-team-score">{{ score }}</div>
+                </div>
             </div>
 
             <div class="button-group">
@@ -101,17 +114,7 @@
             </div>
         </section>
 
-        <!-- Team Scores -->
-        <section v-if="isTeamBased && sortedTeamScores && Object.keys(sortedTeamScores).length > 0" class="team-scores">
-            <div 
-                v-for="(score, teamId) in sortedTeamScores" 
-                :key="teamId"
-                class="team-score-card"
-                :style="{ backgroundColor: getTeamColor(teamId), color: getTeamTextColor(teamId) }">
-                <div class="team-name">{{ getTeamName(teamId) }}</div>
-                <div class="team-score">{{ score }}</div>
-            </div>
-        </section>
+        <!-- Removed separate Team Scores section -->
 
         <!-- Players Section -->
         <section class="players-section">

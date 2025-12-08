@@ -129,7 +129,8 @@ body {
     font-weight: 500;
 }
 
-.control-group input[type="number"] {
+.control-group input[type="number"],
+.control-group select {
     padding: 0.5rem;
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -138,6 +139,73 @@ body {
     min-height: 44px;
     background-color: #2f3640;
     color: var(--text-color);
+}
+
+.preset-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.preset-controls select {
+    flex-grow: 1;
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 4px;
+    background-color: #2f3640;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover:not(:disabled) {
+    background-color: #3e4450;
+    border-color: #555;
+}
+
+.btn-icon:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toolbar-scores {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.toolbar-score-card {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.toolbar-team-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.toolbar-team-score {
+    font-size: 1.5rem;
+    font-weight: bold;
+    line-height: 1.1;
 }
 
 .checkbox-group {
@@ -202,7 +270,7 @@ body {
     box-shadow: var(--shadow-hover);
 }
 
-/* Team Scores */
+/* Team Scores (Legacy section styles kept if needed, but updated to use toolbar scores) */
 .team-scores {
     display: flex;
     flex-wrap: wrap;
@@ -526,12 +594,12 @@ body {
         margin: 1.5rem;
     }
 
-    .team-score-card {
-        min-width: 150px;
+    .toolbar-score-card {
+        min-width: 100px;
     }
 
-    .team-score {
-        font-size: 3rem;
+    .toolbar-team-score {
+        font-size: 2rem;
     }
 
     .dispensers-container {
@@ -694,4 +762,3 @@ body {
         display: none;
     }
 }
-
