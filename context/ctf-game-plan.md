@@ -6,8 +6,8 @@ Create [`src/main/java/net/lasertag/lasertagserver/core/GameType.java`](src/main
 
 ```java
 public enum GameType {
-    DEATHMATCH(false),
-    TEAM_DEATHMATCH(true),
+    DM(false),
+    TEAM_DM(true),
     CTF(true);
     
     private final boolean teamBased;

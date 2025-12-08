@@ -111,9 +111,9 @@ createApp({
         },
         gameTypeOptions() {
             return [
-                { value: 'DM', label: 'Deathmatch' },
-                { value: 'TEAM_DM', label: 'Team Deathmatch' },
-                { value: 'CTF', label: 'Capture The Flag' }
+                { value: 'DM', label: 'DM' },
+                { value: 'TEAM_DM', label: 'TEAM_DM' },
+                { value: 'CTF', label: 'CTF' }
             ];
         }
     },
@@ -296,7 +296,8 @@ createApp({
         },
 
         async updateDispensers(type) {
-            const settings = this.settings.dispensers[type];
+            const typeKey = type.toLowerCase();
+            const settings = this.settings.dispensers[typeKey];
 
             try {
                 const response = await fetch(`/api/dispensers/${type}`, {
