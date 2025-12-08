@@ -69,7 +69,26 @@ createApp({
             return this.dispensers.ammo || [];
         },
         sortedTeamScores() {
-            return this.gameState.teamScores || {};
+            const teamTotals = this.players.reduce((acc, player) => {
+                const teamId = player.teamId;
+
+                if (!Object.prototype.hasOwnProperty.call(acc, teamId)) {
+                    acc[teamId] = 0;
+                }
+                acc[teamId] += player.score || 0;
+                return acc;
+            }, {});
+
+            const sorted = Object.fromEntries(
+                Object.entries(teamTotals).sort((a, b) => b[1] - a[1])
+            );
+
+            if (this.isTeamBased) {
+                return Object.fromEntries(
+                    Object.entries(sorted).filter(([teamId]) => Number(teamId) === 0 || Number(teamId) === 1)
+                );
+            }
+            return sorted;
         },
         gameStatus() {
             if (!this.connected) {
@@ -165,23 +184,6 @@ createApp({
                 });
 
                 this.players = updatedPlayers;
-
-                const teamTotals = this.players.reduce((acc, player) => {
-                    const teamId = player.teamId;
-
-                    if (!Object.prototype.hasOwnProperty.call(acc, teamId)) {
-                        acc[teamId] = 0;
-                    }
-                    acc[teamId] += player.score || 0;
-                    return acc;
-                }, {});
-
-                const sortedTeamTotals = Object.fromEntries(
-                    Object.entries(teamTotals).sort((a, b) => b[1] - a[1])
-                );
-
-                this.gameState.teamScores = sortedTeamTotals;
-                console.log('Computed teamScores:', this.gameState.teamScores);
             });
 
             this.eventSource.addEventListener('timeLeft', (event) => {

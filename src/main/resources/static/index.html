@@ -102,7 +102,7 @@
         </section>
 
         <!-- Team Scores -->
-        <section v-if="isTeamBased && gameState.teamScores && Object.keys(gameState.teamScores).length > 0" class="team-scores">
+        <section v-if="isTeamBased && sortedTeamScores && Object.keys(sortedTeamScores).length > 0" class="team-scores">
             <div 
                 v-for="(score, teamId) in sortedTeamScores" 
                 :key="teamId"
