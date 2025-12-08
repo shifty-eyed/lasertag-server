@@ -161,7 +161,6 @@ public class Game implements GameEventsListener {
 	@Override
 	public void onPlayerDataUpdated(Player player, boolean isNameUpdated) {
 		sendPlayerValuesSnapshotToAll(isNameUpdated);
-		refreshConsoleUI(isGamePlaying);
 	}
 
 	@Scheduled(fixedDelay = 1000, initialDelay = 1000)
