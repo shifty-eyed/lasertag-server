@@ -28,6 +28,10 @@ public record MessageType(byte id, String name, Direction directionFlag) {
 	public static final MessageType GOT_AMMO = new MessageType((byte) 17, "GOT_AMMO", CLIENT_TO_SERVER);
 	public static final MessageType GOT_FLAG = new MessageType((byte) 18, "GOT_FLAG", CLIENT_TO_SERVER);
 
+	public static final MessageType FLAG_TAKEN = new MessageType((byte) 19, "FLAG_TAKEN", CLIENT_TO_SERVER);
+	public static final MessageType FLAG_LOST = new MessageType((byte) 20, "FLAG_LOST", SERVER_TO_CLIENT);
+	public static final MessageType FLAG_CAPTURED = new MessageType((byte) 21, "FLAG_CAPTURED", CLIENT_TO_SERVER);
+
 	public static final MessageType GIVE_HEALTH_TO_PLAYER = new MessageType((byte) 26, "GIVE_HEALTH_TO_PLAYER", BOTH_DIRECTIONS);
 	public static final MessageType GIVE_AMMO_TO_PLAYER = new MessageType((byte) 27, "GIVE_AMMO_TO_PLAYER", BOTH_DIRECTIONS);
 

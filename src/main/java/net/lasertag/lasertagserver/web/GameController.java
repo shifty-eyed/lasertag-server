@@ -7,6 +7,7 @@ import net.lasertag.lasertagserver.core.ActorRegistry;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.GameSettingsPreset;
 import net.lasertag.lasertagserver.core.GameSettings;
+import net.lasertag.lasertagserver.core.GameType;
 import net.lasertag.lasertagserver.core.UdpServer;
 import net.lasertag.lasertagserver.model.Actor;
 import net.lasertag.lasertagserver.model.Player;
@@ -56,10 +57,10 @@ public class GameController {
 	public ResponseEntity<Map<String, String>> startGame(@RequestBody StartGameRequest request) {
 		gameSettings.getCurrent().setTimeLimitMinutes(request.getTimeLimit());
 		gameSettings.getCurrent().setFragLimit(request.getFragLimit());
-		boolean teamPlay = request.isTeamPlay() && actorRegistry.getTeamScores().size() > 1;
-		gameSettings.getCurrent().setTeamPlay(teamPlay);
+		GameType gameType = GameType.valueOf(request.getGameType());
+		gameSettings.getCurrent().setGameType(gameType);
 		gameSettings.syncToActors();
-		gameEventsListener.eventConsoleStartGame(request.getTimeLimit(), request.getFragLimit(), teamPlay);
+		gameEventsListener.eventConsoleStartGame(request.getTimeLimit(), request.getFragLimit(), gameType);
 		return ResponseEntity.ok(Map.of("status", "Game started"));
 	}
 
@@ -130,7 +131,7 @@ public class GameController {
 	public static class StartGameRequest {
 		private int timeLimit;
 		private int fragLimit;
-		private boolean teamPlay;
+		private String gameType;
 	}
 
 	@Getter

@@ -1,5 +1,5 @@
 Server:
-Saving the game settings as presets
+
 Unit tests / integration tests
 setting dispensers doesn't work
 change team play to only have 2 colors - red and blue
@@ -12,4 +12,7 @@ uart wired connection to vest
 
 Common:
 Refactor game types: dm, team dm, ctf
+fix game type lot loaded
+fix switching game type how to prepopulate colors
 
+check why setting dispenser amounts didn't work

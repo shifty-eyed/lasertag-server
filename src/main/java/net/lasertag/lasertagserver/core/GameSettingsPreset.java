@@ -41,8 +41,12 @@ public class GameSettingsPreset {
 	}
 
 	private int fragLimit = 10;
-	private boolean teamPlay = false;
+	private GameType gameType = GameType.DM;
 	private int timeLimitMinutes = 15;
+
+	public boolean isTeamPlay() {
+		return gameType.isTeamBased();
+	}
 
 	private Map<Integer, PlayerSettings> playerSettings = new HashMap<>();
 
@@ -68,7 +72,7 @@ public class GameSettingsPreset {
 		Map<String, Object> allSettings = new HashMap<>();
         Map<String, Object> general = new HashMap<>();
 		general.put("fragLimit", fragLimit);
-		general.put("teamPlay", teamPlay);
+		general.put("gameType", gameType.name());
 		general.put("timeLimitMinutes", timeLimitMinutes);
 		allSettings.put("general", general);
 		allSettings.put("players", getAllPlayerSettings());

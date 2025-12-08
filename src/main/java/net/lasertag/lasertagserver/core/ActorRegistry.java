@@ -18,6 +18,7 @@ public class ActorRegistry {
 	public static final int RESPAWN_POINT_COUNT = PLAYER_COUNT;
 
 	private List<Integer> respawnPointsIds = new ArrayList<>(RESPAWN_POINT_COUNT);
+	private final Map<Integer, Integer> teamScores = new HashMap<>();
 
 	public ActorRegistry() {// this should be in config screen before running the game
 		for (int i = 0; i < PLAYER_COUNT; i++) {
@@ -71,10 +72,22 @@ public class ActorRegistry {
 
 	public LinkedHashMap<Integer, Integer> getTeamScores() {
 		// teamId -> score, sorted by highest score
-		return streamPlayers()
-			.collect(Collectors.groupingBy(Player::getTeamId, Collectors.summingInt(Player::getScore)))
-			.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+		return teamScores.entrySet().stream()
+			.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
 			.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+	}
+
+	public void incrementTeamScore(int teamId) {
+		teamScores.merge(teamId, 1, Integer::sum);
+	}
+
+	public void resetTeamScores() {
+		teamScores.clear();
+		// Initialize scores for all teams that have players
+		streamPlayers()
+			.map(Player::getTeamId)
+			.distinct()
+			.forEach(teamId -> teamScores.put(teamId, 0));
 	}
 
 	public Player getPlayerById(int id) {

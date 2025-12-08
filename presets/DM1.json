@@ -1,6 +1,6 @@
 {
   "fragLimit" : 10,
-  "teamPlay" : false,
+  "gameType" : "DM",
   "timeLimitMinutes" : 15,
   "playerSettings" : {
     "0" : {

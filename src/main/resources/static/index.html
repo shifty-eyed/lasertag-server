@@ -47,14 +47,16 @@
                     max="100">
             </div>
 
-            <div class="control-group checkbox-group">
-                <label>
-                    <input 
-                        type="checkbox" 
-                        v-model="settings.general.teamPlay" 
-                        :disabled="gameState.playing">
-                    Team Play
-                </label>
+            <div class="control-group">
+                <label for="gameType">Game Type:</label>
+                <select 
+                    id="gameType" 
+                    v-model="settings.general.gameType" 
+                    :disabled="gameState.playing">
+                    <option v-for="option in gameTypeOptions" :key="option.value" :value="option.value">
+                        {{ option.label }}
+                    </option>
+                </select>
             </div>
 
             <div class="control-group">
@@ -100,7 +102,7 @@
         </section>
 
         <!-- Team Scores -->
-        <section v-if="settings.general.teamPlay && gameState.teamScores && Object.keys(gameState.teamScores).length > 0" class="team-scores">
+        <section v-if="isTeamBased && gameState.teamScores && Object.keys(gameState.teamScores).length > 0" class="team-scores">
             <div 
                 v-for="(score, teamId) in sortedTeamScores" 
                 :key="teamId"
@@ -152,7 +154,7 @@
                                     v-model.number="player.teamId" 
                                     @change="updatePlayer(player)"
                                     :style="{ backgroundColor: getTeamColor(player.teamId), color: getTeamTextColor(player.teamId) }">
-                                    <option v-for="(name, id) in teamNames" :key="id" :value="id">{{ name }}</option>
+                                    <option v-for="(name, id) in availableTeams" :key="id" :value="Number(id)">{{ name }}</option>
                                 </select>
                             </div>
                             <div class="player-equipment">
@@ -234,7 +236,7 @@
                                         v-model.number="player.teamId" 
                                         @change="updatePlayer(player)"
                                         :style="{ backgroundColor: getTeamColor(player.teamId), color: getTeamTextColor(player.teamId) }">
-                                        <option v-for="(name, id) in teamNames" :key="id" :value="id">{{ name }}</option>
+                                        <option v-for="(name, id) in availableTeams" :key="id" :value="Number(id)">{{ name }}</option>
                                     </select>
                                 </td>
                                 <td>

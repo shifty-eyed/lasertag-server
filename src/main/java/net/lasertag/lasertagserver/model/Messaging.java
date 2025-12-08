@@ -79,13 +79,13 @@ public abstract class Messaging {
 		return result;
 	}
 
-	public static byte[] playerStatsToBytes(boolean includeNames, List<Player> players, boolean gameRunning, boolean teamPlay, int timeSeconds) {
+	public static byte[] playerStatsToBytes(boolean includeNames, List<Player> players, boolean gameRunning, int gameTypeOrdinal, int timeSeconds) {
 		var size = 6 + getPlayersSize(players, includeNames);
 		ByteBuffer data = ByteBuffer.allocate(size);
 		data.order(java.nio.ByteOrder.LITTLE_ENDIAN);
 		data.put(FULL_STATS.id()); //byte 1
 		data.put((byte)(gameRunning ? 1 : 0)); //byte 2
-		data.put((byte)(teamPlay ? 1 : 0)); //byte 3
+		data.put((byte) gameTypeOrdinal); //byte 3: gameType ordinal (0=DM, 1=TDM, 2=CTF)
 		data.putShort((short)(timeSeconds)); //byte 4,5
 		data.put((byte)players.size()); //byte 6
 		for (Player player : players) {

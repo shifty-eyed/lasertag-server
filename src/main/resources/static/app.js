@@ -22,7 +22,7 @@ createApp({
             settings: {
                 general: {
                     fragLimit: 10,
-                    teamPlay: false,
+                    gameType: 'DM',
                     timeLimitMinutes: 15
                 },
                 players: {},
@@ -94,6 +94,27 @@ createApp({
                 default:
                     return 'Unknown';
             }
+        },
+        isTeamBased() {
+            const gameType = this.settings.general.gameType;
+            return gameType === 'TEAM_DM' || gameType === 'CTF';
+        },
+        availableTeams() {
+            // For team-based modes, only Red and Blue are available
+            if (this.isTeamBased) {
+                return {
+                    0: 'Red',
+                    1: 'Blue'
+                };
+            }
+            return this.teamNames;
+        },
+        gameTypeOptions() {
+            return [
+                { value: 'DM', label: 'Deathmatch' },
+                { value: 'TEAM_DM', label: 'Team Deathmatch' },
+                { value: 'CTF', label: 'Capture The Flag' }
+            ];
         }
     },
 
@@ -216,7 +237,7 @@ createApp({
                     body: JSON.stringify({
                         timeLimit: this.settings.general.timeLimitMinutes,
                         fragLimit: this.settings.general.fragLimit,
-                        teamPlay: this.settings.general.teamPlay
+                        gameType: this.settings.general.gameType
                     })
                 });
                 
