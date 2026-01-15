@@ -95,7 +95,6 @@ public class GameController {
 		
 		gameSettings.syncToActors();
 		udpServer.sendSettingsToAllDispensers();
-		sseEventService.sendDispensersUpdate(actorRegistry.getOnlineDispensers());
 		
 		return ResponseEntity.ok(Map.of("status", "Dispensers updated"));
 	}

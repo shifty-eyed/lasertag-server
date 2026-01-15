@@ -1,18 +1,11 @@
 Server:
-
 Unit tests / integration tests
-setting dispensers doesn't work
-change team play to only have 2 colors - red and blue
 
 
 esp32:
 uart wired connection to vest
 
 
-
 Common:
-Refactor game types: dm, team dm, ctf
-
-fix switching game type how to prepopulate colors
 check for cyclic events in both server to phone and server to ui
-check why setting dispenser amounts didn't work
+
