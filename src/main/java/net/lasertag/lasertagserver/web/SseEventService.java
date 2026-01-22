@@ -91,7 +91,7 @@ public class SseEventService {
 		if (emitters.isEmpty()) {
 			return;
 		}
-		log.info("Sending SSE event: {} with data: {}", eventName, data.toString());
+		//log.info("Sending SSE event: {} with data: {}", eventName, data.toString());
 		try {
 			String jsonData = objectMapper.writeValueAsString(data);
 			CopyOnWriteArrayList<SseEmitter> deadEmitters = new CopyOnWriteArrayList<>();

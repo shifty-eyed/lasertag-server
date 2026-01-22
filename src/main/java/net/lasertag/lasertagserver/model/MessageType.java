@@ -41,6 +41,7 @@ public record MessageType(byte id, String name, Direction directionFlag) {
 
 	public static final MessageType GAME_TIMER = new MessageType((byte) 101, "GAME_TIMER", SERVER_TO_CLIENT);
 	public static final MessageType LOST_CONNECTION = new MessageType((byte) 102, "LOST_CONNECTION", SERVER_TO_CLIENT);
+	public static final MessageType MOCK_DEVICE_EVENT = new MessageType((byte) 103, "MOCK_DEVICE_EVENT", SERVER_TO_CLIENT);
 
 	public enum Direction {
 		CLIENT_TO_SERVER,

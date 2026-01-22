@@ -10,6 +10,7 @@ import net.lasertag.lasertagserver.core.GameSettings;
 import net.lasertag.lasertagserver.core.GameType;
 import net.lasertag.lasertagserver.core.UdpServer;
 import net.lasertag.lasertagserver.model.Actor;
+import net.lasertag.lasertagserver.model.MessageType;
 import net.lasertag.lasertagserver.model.Player;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -82,6 +83,20 @@ public class GameController {
 		gameEventsListener.onPlayerDataUpdated(player, nameUpdated);
 		
 		return ResponseEntity.ok(player);
+	}
+
+	@PostMapping("/players/{id}/devevent")
+	public ResponseEntity<Map<String, String>> sendDevEvent(
+		@PathVariable int id,
+		@RequestParam int type,
+		@RequestParam int payload
+	) {
+		Player player = actorRegistry.getPlayerById(id);
+		if (player == null || !player.isOnline()) {
+			return ResponseEntity.badRequest().body(Map.of("error", "Player not found or offline"));
+		}
+		udpServer.sendEventToClient(MessageType.MOCK_DEVICE_EVENT, player, (byte) type, (byte) payload);
+		return ResponseEntity.ok(Map.of("status", "Mock device event sent"));
 	}
 
 	@PutMapping("/dispensers/{type}")

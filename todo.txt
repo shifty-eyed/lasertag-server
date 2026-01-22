@@ -1,11 +1,6 @@
 Server:
 Unit tests / integration tests
 
-
-esp32:
-uart wired connection to vest
-
-
 Common:
 check for cyclic events in both server to phone and server to ui
 
