@@ -243,9 +243,14 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <span v-if="player.online && player.health === 0 && player.assignedRespawnPoint >= 0">
+                                    <button
+                                        v-if="isRespawnPending(player)"
+                                        type="button"
+                                        class="respawn-point-button"
+                                        title="Send respawn point event"
+                                        @click="triggerRespawnPoint(player)">
                                         {{ player.assignedRespawnPoint }}
-                                    </span>
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>

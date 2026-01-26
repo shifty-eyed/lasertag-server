@@ -505,6 +505,23 @@ body {
     max-width: 80px;
 }
 
+.respawn-point-button {
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--online-highlight);
+    border-radius: 6px;
+    background-color: rgba(74, 143, 94, 0.2);
+    color: var(--text-color);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.respawn-point-button:hover {
+    background-color: rgba(74, 143, 94, 0.35);
+    border-color: #6ec07a;
+    box-shadow: var(--shadow-hover);
+}
+
 /* Dispensers Section */
 .dispensers-section {
     margin: 1rem;

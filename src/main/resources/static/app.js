@@ -349,6 +349,23 @@ createApp({
             return this.teamTextColors[teamId] || '#000000';
         },
 
+        isRespawnPending(player) {
+            return player.online &&
+                player.health === 0 &&
+                player.assignedRespawnPoint >= 0;
+        },
+
+        async triggerRespawnPoint(player) {
+            try {
+                const response = await fetch(
+                    `/api/players/${player.id}/devevent?type=6&payload=${player.assignedRespawnPoint}`,
+                    { method: 'POST' }
+                );
+            } catch (error) {
+                alert('Failed to send respawn point event');
+            }
+        },
+
         clearLogs() {
             this.logs = [];
         },
