@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.lasertag.lasertagserver.core.ActorRegistry;
+import net.lasertag.lasertagserver.core.Game;
 import net.lasertag.lasertagserver.core.GameEventsListener;
 import net.lasertag.lasertagserver.core.GameSettingsPreset;
 import net.lasertag.lasertagserver.core.GameSettings;
@@ -31,14 +32,16 @@ public class GameController {
 	private final UdpServer udpServer;
 	private final SseEventService sseEventService;
 	private final GameSettings gameSettings;
+	private final Game game;
 
 	public GameController(ActorRegistry actorRegistry, GameEventsListener gameEventsListener, 
-						  SseEventService sseEventService, GameSettings gameSettings, UdpServer udpServer) {
+						  SseEventService sseEventService, GameSettings gameSettings, UdpServer udpServer, Game game) {
 		this.actorRegistry = actorRegistry;
 		this.gameEventsListener = gameEventsListener;
 		this.sseEventService = sseEventService;
 		this.gameSettings = gameSettings;
 		this.udpServer = udpServer;
+		this.game = game;
 	}
 
 	@GetMapping("/events")
@@ -52,6 +55,22 @@ public class GameController {
 		} catch (Exception e) {}
 		
 		return emitter;
+	}
+
+	@GetMapping("/game/snapshot")
+	public GameSnapshotResponse getGameSnapshot() {
+		GameStateResponse gameState = new GameStateResponse(
+			game.isGamePlaying(),
+			game.getTimeLeftSeconds(),
+			actorRegistry.getTeamScores()
+		);
+
+		return new GameSnapshotResponse(
+			gameState,
+			actorRegistry.getPlayers(),
+			actorRegistry.getOnlineDispensers(),
+			gameSettings.getAllSettingsWithMetadata()
+		);
 	}
 
 	@PostMapping("/game/start")
@@ -154,6 +173,19 @@ public class GameController {
 		private Integer timeout;
 		private Integer amount;
 	}
+
+	public record GameSnapshotResponse(
+		GameStateResponse gameState,
+		List<Player> players,
+		Map<String, List<Integer>> dispensers,
+		Map<String, Object> settings
+	) {}
+
+	public record GameStateResponse(
+		boolean playing,
+		int timeLeftSeconds,
+		Map<Integer, Integer> teamScores
+	) {}
 
 }
 
